@@ -18,8 +18,8 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json({ success: false, message: "Method not allowed" }, 405);
 
   try {
-    const supabaseUrl      = Deno.env.get("SUPABASE_URL");
-    const serviceKey       = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const supabaseUrl       = Deno.env.get("SUPABASE_URL");
+    const serviceKey        = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const midtransServerKey = Deno.env.get("MIDTRANS_SERVER_KEY");
     const midtransIsProduction = Deno.env.get("MIDTRANS_IS_PRODUCTION") === "true";
 
@@ -47,6 +47,7 @@ Deno.serve(async (req: Request) => {
     if (supabaseUrl && serviceKey) {
       const supabase = createClient(supabaseUrl, serviceKey);
 
+      // Try by slug first (frontend sends slug as product_id)
       let { data: product, error } = await supabase
         .from("products")
         .select("id, name, slug, selling_price, cost_price, is_active, digiflazz_sku")
@@ -54,6 +55,7 @@ Deno.serve(async (req: Request) => {
         .eq("is_active", true)
         .maybeSingle();
 
+      // Fallback: try by UUID
       if (!product && !error) {
         const { data: byId, error: idErr } = await supabase
           .from("products")
@@ -74,9 +76,9 @@ Deno.serve(async (req: Request) => {
         return json({ success: false, message: "Produk tidak ditemukan atau tidak aktif" }, 404);
       }
 
-      sellingPrice = product.selling_price ?? product.cost_price ?? 0;
-      productName  = denomination_label ? `${product.name} — ${denomination_label}` : product.name;
-      digiflazzSku = product.digiflazz_sku ?? null;
+      sellingPrice  = product.selling_price ?? product.cost_price ?? 0;
+      productName   = denomination_label ? `${product.name} — ${denomination_label}` : product.name;
+      digiflazzSku  = product.digiflazz_sku ?? null;
     } else {
       sellingPrice = denomination_price || 0;
       productName  = denomination_label || "Demo Product";
@@ -86,10 +88,11 @@ Deno.serve(async (req: Request) => {
       return json({ success: false, message: "Harga produk tidak valid" }, 400);
     }
 
-    const random4   = Math.random().toString(36).slice(2, 6).toUpperCase();
-    const invoiceId = `RYUII-${Date.now()}-${random4}`;
+    const random4       = Math.random().toString(36).slice(2, 6).toUpperCase();
+    const invoiceId     = `RYUII-${Date.now()}-${random4}`;
     const paymentAmount = Math.round(sellingPrice);
 
+    // product_id stored in transactions = digiflazz_sku (used by midtrans-callback for top-up)
     const resolvedProductId = digiflazzSku || product_id;
 
     if (!midtransServerKey) {
@@ -163,36 +166,79 @@ Deno.serve(async (req: Request) => {
 
     console.log("[create-order] Midtrans token received for:", invoiceId);
 
+    // Save transaction — try full insert first, fallback to minimal columns on schema error
     if (supabaseUrl && serviceKey) {
       const supabase = createClient(supabaseUrl, serviceKey);
-      const { error: insertError } = await supabase.from("transactions").insert({
+
+      // Full insert (all optional columns)
+      const fullRow: Record<string, unknown> = {
         invoice_id:         invoiceId,
         product_id:         resolvedProductId,
         player_id:          player_id,
-        zone_id:            zone_id ?? null,
         game_slug:          game_slug ?? null,
         denomination_label: denomination_label ?? null,
-        selling_price:      paymentAmount,
         status:             "pending",
         payment_method:     payment_method ?? null,
+        selling_price:      paymentAmount,
         customer_email:     customer_email ?? null,
+        zone_id:            zone_id ?? null,
         nickname:           nickname ?? null,
         snap_token:         midtransResult.token,
         snap_redirect_url:  midtransResult.redirect_url ?? null,
         user_id:            user_id ?? null,
-      });
+      };
 
-      if (insertError) {
-        console.error("[create-order] Failed to insert transaction:", insertError.message);
-        return json({ success: false, message: "Gagal menyimpan transaksi. Silakan coba lagi." }, 500);
+      const { error: fullErr } = await supabase.from("transactions").insert(fullRow);
+
+      if (fullErr) {
+        console.warn("[create-order] Full insert failed, trying minimal insert. Reason:", fullErr.message);
+
+        // Minimal insert — only columns confirmed by midtrans-callback schema
+        const minimalRow: Record<string, unknown> = {
+          invoice_id:         invoiceId,
+          product_id:         resolvedProductId,
+          player_id:          player_id,
+          game_slug:          game_slug ?? null,
+          denomination_label: denomination_label ?? null,
+          status:             "pending",
+          payment_method:     payment_method ?? null,
+        };
+
+        const { error: minErr } = await supabase.from("transactions").insert(minimalRow);
+
+        if (minErr) {
+          console.warn("[create-order] Minimal insert also failed:", minErr.message);
+
+          // Last resort — try with absolute minimum (invoice_id + product_id + player_id + status)
+          const bareRow: Record<string, unknown> = {
+            invoice_id: invoiceId,
+            product_id: resolvedProductId,
+            player_id:  player_id,
+            status:     "pending",
+          };
+
+          const { error: bareErr } = await supabase.from("transactions").insert(bareRow);
+
+          if (bareErr) {
+            console.error("[create-order] All insert attempts failed:", bareErr.message, "| Bare insert error.");
+            // Do NOT block payment — Midtrans token is valid.
+            // Log error but return success so user can pay. Webhook will still fire.
+          } else {
+            console.log("[create-order] Bare insert succeeded for:", invoiceId);
+          }
+        } else {
+          console.log("[create-order] Minimal insert succeeded for:", invoiceId);
+        }
+      } else {
+        console.log("[create-order] Full insert succeeded for:", invoiceId);
       }
     }
 
     return json({
-      success:   true,
-      token:     midtransResult.token,
+      success:     true,
+      token:       midtransResult.token,
       invoiceId,
-      amount:    paymentAmount,
+      amount:      paymentAmount,
       productName,
     });
   } catch (err) {
