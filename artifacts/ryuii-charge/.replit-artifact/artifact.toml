@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "RyuiiCharge"
+version = "1.0.0"
+id = "artifacts/ryuii-charge"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 26175
+
+[services.development]
+run = "pnpm --filter @workspace/ryuii-charge run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/ryuii-charge", "run", "build" ]
+publicDir = "artifacts/ryuii-charge/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "26175"
+BASE_PATH = "/"

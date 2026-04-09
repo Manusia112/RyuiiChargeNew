@@ -1,0 +1,25 @@
+SYSTEM ARCHITECTURE & LOGIC FLOW DOCUMENTATION
+Project: RyuiiCharge (Game Top-up Platform)
+Stack: React (Vite) + Supabase (PostgreSQL & Edge Functions) + Midtrans + Digiflazz
+​1. Database Context (The Root Cause Area)
+We have two main structures for products:
+​products (Table): Stores the raw item data from the provider. Contains the base/modal price (selling_price). Example: selling_price is 900.
+​products_public (View/Table): Contains the data exposed to the frontend. It calculates and adds a profit margin to the base price. Example: displayed price is 1000.
+​2. Frontend Checkout Flow (src/pages/Checkout.tsx)
+​User selects a game, enters their Player ID, and selects a payment method.
+​The frontend displays the final price fetched from products_public (e.g., Rp 1.000).
+​When the user clicks "Bayar Sekarang" (Pay Now), the frontend sends a POST request to the Supabase Edge Function create-order.
+​The payload likely includes the product_id (or sku), the expected final price (1000), customer details, and payment method.
+​3. Backend Logic & The Bottleneck (supabase/functions/create-order/index.ts)
+​The create-order function receives the request.
+​[THE BUG IS HERE]: The function performs a security validation to ensure the price hasn't been tampered with. However, it currently queries the base products table instead of products_public.
+​It compares the frontend price (1000) with the database base price (900). Because 1000 != 900, the validation fails.
+​As a result, the function throws a 404 Not Found error with the message: "Produk tidak ditemukan atau tidak aktif".
+​Expected behavior after validation: If validation passes, it should insert a record into the orders/transactions table and call the Midtrans API to generate a payment token/QRIS URL.
+​4. Frontend Navigation Bug (src/pages/Checkout.tsx)
+​There is a secondary UI bug on the Checkout page.
+​When the user clicks the "Kembali" (Back) button, instead of navigating to the previous page in history, it navigates to the literal string URL /-1, causing a 404 Page Not Found error on the frontend.
+​5. System Constraints (DO NOT TOUCH)
+​Webhook & Proxy: Do NOT modify anything related to Digiflazz, proxy.php, or the midtrans-webhook Edge Function. The post-payment logic is working perfectly.
+​Scope: Your ONLY job is to fix the price validation logic inside create-order/index.ts so it accepts the price from products_public, and to fix the back button routing in Checkout.tsx.
+​Goal: Analyze the code based on this documentation, fix the create-order Edge Function, fix the Checkout navigation, and deploy the function successfully. Let me know when you are done.

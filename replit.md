@@ -25,3 +25,20 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - `pnpm --filter @workspace/api-server run dev` — run API server locally
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+
+## RyuiiCharge Fix Log
+
+### Fixed: `create-order` Supabase Edge Function
+- **Problem**: Function queried `products_public` view with columns that don't exist (`fixed_price`, `cost_price`, `markup_percent`, `pricing_mode`), causing "Produk tidak ditemukan atau tidak aktif" error. Also used Duitku payment gateway instead of Midtrans, and inserted into `orders` table instead of `transactions`.
+- **Fix**: Rewrote `supabase/functions/create-order/index.ts` to:
+  1. Query `products` table directly (same table `GameDetail.tsx` uses) with known columns (`id, name, slug, selling_price, cost_price, is_active, digiflazz_sku`)
+  2. Use Midtrans Snap API to create payment tokens (env: `MIDTRANS_SERVER_KEY`, `MIDTRANS_IS_PRODUCTION`)
+  3. Insert into `transactions` table (which `midtrans-callback` expects)
+  4. Return `{ success, token, invoiceId }` format matching `Checkout.tsx` expectations
+- **Untouched**: `midtrans-callback`, `check-nickname`, `proxy.php`, `Checkout.tsx`, `GameDetail.tsx`, all validation logic
+
+### Required Supabase Edge Function Env Vars
+- `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` — auto-set by Supabase
+- `MIDTRANS_SERVER_KEY` — Midtrans Server Key
+- `MIDTRANS_IS_PRODUCTION` — set to `"true"` for production Midtrans
+- `DIGIFLAZZ_USERNAME` / `DIGIFLAZZ_API_KEY` — used by `midtrans-callback` for top-up
