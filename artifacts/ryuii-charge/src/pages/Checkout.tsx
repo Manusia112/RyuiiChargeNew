@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import PaymentMethodSelector from "@/components/PaymentMethodSelector";
 import { getGameBySlug } from "@/data/games";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
@@ -36,33 +35,27 @@ const Checkout = () => {
   const [, navigate] = useLocation();
   const params = new URLSearchParams(search);
 
-  // Primary: URL params (always populated by GameDetail)
   const gameSlug      = params.get("game") ?? "";
   const denomId       = params.get("denom") ?? "";
   const playerId      = params.get("playerId") ?? "";
   const serverId      = params.get("serverId") ?? "";
   const nickname      = params.get("nickname") ?? "";
 
-  // Display data passed directly from GameDetail — never relies on static lookup
   const gameNameParam   = params.get("gameName") ?? "";
   const denomLabelParam = params.get("denomLabel") ?? "";
   const denomPriceParam = Number(params.get("denomPrice") ?? "0");
 
-  // Also try static lookup as a bonus (fills in if game is in local data)
   const staticGame  = getGameBySlug(gameSlug);
   const staticDenom = staticGame?.denominations.find((d) => d.id === denomId);
 
-  // Resolved display values: URL params take priority, static data as fallback
   const gameName   = gameNameParam  || staticGame?.name   || "";
   const denomLabel = denomLabelParam || staticDenom?.label || "";
   const denomPrice = denomPriceParam || staticDenom?.price || 0;
 
   const { user } = useAuth();
 
-  const [paymentMethod, setPaymentMethod] = useState("");
   const [creating, setCreating] = useState(false);
 
-  // Validation — only fail if we have NO usable data at all
   const missingFields: string[] = [];
   if (!gameSlug)       missingFields.push("game");
   if (!denomId)        missingFields.push("produk");
@@ -93,8 +86,6 @@ const Checkout = () => {
   }
 
   const handleCreateInvoice = async () => {
-    if (!paymentMethod) return;
-
     setCreating(true);
 
     const payload: Record<string, unknown> = {
@@ -106,10 +97,8 @@ const Checkout = () => {
       game_slug:          gameSlug,
       nickname:           nickname || undefined,
       customer_email:     user?.email,
-      payment_method:     paymentMethod,
     };
 
-    // Resolve authenticated user's UUID for transaction linking
     let resolvedUserId: string | undefined;
     if (supabaseConfigured && supabase) {
       try {
@@ -121,7 +110,7 @@ const Checkout = () => {
     }
     if (resolvedUserId) payload.user_id = resolvedUserId;
 
-    console.log("[Checkout] Sending payload to /api/checkout:", { ...payload, user_id: resolvedUserId ? "***" : undefined });
+    console.log("[Checkout] Sending payload to create-order:", { ...payload, user_id: resolvedUserId ? "***" : undefined });
 
     try {
       const response = await fetch(API.checkout, {
@@ -138,7 +127,7 @@ const Checkout = () => {
         error?: string;
       };
 
-      console.log("[Checkout] /api/checkout response:", response.status, result);
+      console.log("[Checkout] create-order response:", response.status, result);
 
       if (result.success === false || !response.ok) {
         const errMsg = result.message ?? result.error ?? `Server error (HTTP ${response.status})`;
@@ -163,7 +152,7 @@ const Checkout = () => {
             toast.error("Pembayaran gagal. Silakan coba lagi.");
           },
           onClose: () => {
-            toast.info("Popup ditutup. Pilih metode pembayaran untuk melanjutkan.");
+            toast.info("Popup ditutup. Klik Bayar Sekarang untuk melanjutkan.");
           },
         });
         return;
@@ -171,7 +160,7 @@ const Checkout = () => {
 
       setCreating(false);
     } catch (err) {
-      console.error("[Checkout] Network error during /api/checkout:", err);
+      console.error("[Checkout] Network error during create-order:", err);
       toast.error("Gagal menghubungi server, coba lagi");
       setCreating(false);
     }
@@ -227,11 +216,9 @@ const Checkout = () => {
             </div>
           </div>
 
-          <PaymentMethodSelector selected={paymentMethod} onSelect={setPaymentMethod} />
-
           <Button
             onClick={handleCreateInvoice}
-            disabled={!paymentMethod || creating}
+            disabled={creating}
             className="w-full btn-neon gradient-primary text-white h-12"
             data-testid="button-create-invoice"
           >
