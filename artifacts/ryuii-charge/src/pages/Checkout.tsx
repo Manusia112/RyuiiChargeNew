@@ -88,6 +88,24 @@ const Checkout = () => {
   const handleCreateInvoice = async () => {
     setCreating(true);
 
+    // Resolve session — get both user UUID and access token for auth binding
+    let resolvedUserId: string | undefined;
+    let accessToken: string | undefined;
+    let resolvedEmail: string | undefined = user?.email;
+
+    if (supabaseConfigured && supabase) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          resolvedUserId = session.user.id;
+          accessToken    = session.access_token;
+          resolvedEmail  = session.user.email ?? resolvedEmail;
+        }
+      } catch {
+        // Non-critical — proceed as guest
+      }
+    }
+
     const payload: Record<string, unknown> = {
       product_id:         denomId,
       player_id:          playerId,
@@ -96,26 +114,23 @@ const Checkout = () => {
       denomination_price: denomPrice,
       game_slug:          gameSlug,
       nickname:           nickname || undefined,
-      customer_email:     user?.email,
+      customer_email:     resolvedEmail,
+      // Always send user_id + email in body as explicit binding
+      ...(resolvedUserId ? { user_id: resolvedUserId } : {}),
     };
 
-    let resolvedUserId: string | undefined;
-    if (supabaseConfigured && supabase) {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        resolvedUserId = session?.user?.id;
-      } catch {
-        // Non-critical — proceed as guest
-      }
-    }
-    if (resolvedUserId) payload.user_id = resolvedUserId;
+    console.log("[Checkout] Sending payload to create-order:", { ...payload, user_id: resolvedUserId ? "***" : "guest" });
 
-    console.log("[Checkout] Sending payload to create-order:", { ...payload, user_id: resolvedUserId ? "***" : undefined });
+    // Build headers: include user JWT if available so backend can verify server-side
+    const headers: Record<string, string> = {
+      ...edgeHeaders(),
+      ...(accessToken ? { "Authorization": `Bearer ${accessToken}` } : {}),
+    };
 
     try {
       const response = await fetch(API.checkout, {
         method: "POST",
-        headers: edgeHeaders(),
+        headers,
         body: JSON.stringify(payload),
       });
 

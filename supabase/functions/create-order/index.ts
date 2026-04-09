@@ -13,7 +13,10 @@ function json(body: unknown, status = 200) {
   });
 }
 
-/** Try inserting a row, progressively dropping optional columns on schema error */
+/**
+ * Try inserting into `transactions` progressively.
+ * user_id is included in ALL levels so it's never lost on fallback.
+ */
 async function saveTransaction(
   supabase: ReturnType<typeof createClient>,
   invoiceId: string,
@@ -29,7 +32,8 @@ async function saveTransaction(
   snap_redirect_url: string | null,
   user_id: string | null,
 ): Promise<void> {
-  const full: Record<string, unknown> = {
+  // Level 1 — all columns
+  const { error: e1 } = await supabase.from("transactions").insert({
     invoice_id:         invoiceId,
     product_id:         resolvedProductId,
     player_id,
@@ -43,13 +47,12 @@ async function saveTransaction(
     snap_token,
     snap_redirect_url,
     user_id,
-  };
-
-  const { error: e1 } = await supabase.from("transactions").insert(full);
+  });
   if (!e1) { console.log("[create-order] Full insert OK:", invoiceId); return; }
   console.warn("[create-order] Full insert failed:", e1.message);
 
-  const minimal: Record<string, unknown> = {
+  // Level 2 — drop snap columns (may not exist yet), keep user_id
+  const { error: e2 } = await supabase.from("transactions").insert({
     invoice_id:         invoiceId,
     product_id:         resolvedProductId,
     player_id,
@@ -60,23 +63,35 @@ async function saveTransaction(
     customer_email,
     zone_id,
     nickname,
-  };
+    user_id,
+  });
+  if (!e2) { console.log("[create-order] Level-2 insert OK:", invoiceId); return; }
+  console.warn("[create-order] Level-2 insert failed:", e2.message);
 
-  const { error: e2 } = await supabase.from("transactions").insert(minimal);
-  if (!e2) { console.log("[create-order] Minimal insert OK:", invoiceId); return; }
-  console.warn("[create-order] Minimal insert failed:", e2.message);
+  // Level 3 — minimal columns, still keep user_id
+  const { error: e3 } = await supabase.from("transactions").insert({
+    invoice_id:         invoiceId,
+    product_id:         resolvedProductId,
+    player_id,
+    game_slug,
+    denomination_label,
+    status:             "pending",
+    user_id,
+  });
+  if (!e3) { console.log("[create-order] Level-3 insert OK:", invoiceId); return; }
+  console.warn("[create-order] Level-3 insert failed:", e3.message);
 
-  const bare: Record<string, unknown> = {
+  // Level 4 — absolute bare minimum
+  const { error: e4 } = await supabase.from("transactions").insert({
     invoice_id: invoiceId,
     product_id: resolvedProductId,
     player_id,
     status:     "pending",
-  };
-
-  const { error: e3 } = await supabase.from("transactions").insert(bare);
-  if (!e3) { console.log("[create-order] Bare insert OK:", invoiceId); return; }
-  console.error("[create-order] All insert attempts failed:", e3.message);
-  throw new Error(e3.message);
+    user_id,
+  });
+  if (!e4) { console.log("[create-order] Bare insert OK:", invoiceId); return; }
+  console.error("[create-order] All insert attempts failed:", e4.message);
+  throw new Error(e4.message);
 }
 
 Deno.serve(async (req: Request) => {
@@ -86,9 +101,11 @@ Deno.serve(async (req: Request) => {
   try {
     const supabaseUrl          = Deno.env.get("SUPABASE_URL");
     const serviceKey           = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const anonKey              = Deno.env.get("SUPABASE_ANON_KEY");
     const midtransServerKey    = Deno.env.get("MIDTRANS_SERVER_KEY");
     const midtransIsProduction = Deno.env.get("MIDTRANS_IS_PRODUCTION") === "true";
 
+    const body = await req.json();
     const {
       product_id,
       player_id,
@@ -97,14 +114,46 @@ Deno.serve(async (req: Request) => {
       denomination_price,
       game_slug,
       nickname,
-      customer_email,
-      user_id,
-    } = await req.json();
+      customer_email: bodyEmail,
+      user_id: bodyUserId,
+    } = body;
 
     if (!product_id || !player_id) {
       return json({ success: false, message: "product_id dan player_id wajib diisi" }, 400);
     }
 
+    // ── Resolve authenticated user ─────────────────────────────────────────────
+    // Priority: JWT from Authorization header → user_id from body → null (guest)
+    let resolvedUserId: string | null = bodyUserId ?? null;
+    let resolvedEmail: string | null  = bodyEmail ?? null;
+
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const jwtToken   = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+
+    if (jwtToken && supabaseUrl && anonKey) {
+      try {
+        // Use anon client with user's JWT to validate identity server-side
+        const userClient = createClient(supabaseUrl, anonKey, {
+          global: { headers: { Authorization: `Bearer ${jwtToken}` } },
+        });
+        const { data: { user }, error: authErr } = await userClient.auth.getUser();
+        if (!authErr && user) {
+          resolvedUserId = user.id;
+          resolvedEmail  = user.email ?? resolvedEmail;
+          console.log("[create-order] Auth via JWT OK — user:", resolvedUserId);
+        } else {
+          console.warn("[create-order] JWT validation failed:", authErr?.message ?? "no user");
+        }
+      } catch (authEx) {
+        console.warn("[create-order] JWT validation exception:", authEx);
+      }
+    }
+
+    if (!resolvedUserId) {
+      console.log("[create-order] Proceeding as guest (no authenticated user)");
+    }
+
+    // ── Product lookup ─────────────────────────────────────────────────────────
     let sellingPrice: number = 0;
     let productName: string  = "";
     let digiflazzSku: string | null = null;
@@ -134,7 +183,6 @@ Deno.serve(async (req: Request) => {
         console.error("[create-order] DB lookup error:", error.message);
         return json({ success: false, message: "Gagal mengambil data produk" }, 500);
       }
-
       if (!product) {
         return json({ success: false, message: "Produk tidak ditemukan atau tidak aktif" }, 404);
       }
@@ -156,7 +204,9 @@ Deno.serve(async (req: Request) => {
     const paymentAmount     = Math.round(sellingPrice);
     const resolvedProductId = digiflazzSku || product_id;
 
-    // ── STEP 1: Save transaction to DB BEFORE calling Midtrans ────────────────
+    console.log("[create-order] user_id binding:", resolvedUserId ?? "guest", "| invoice:", invoiceId);
+
+    // ── STEP 1: Save transaction BEFORE calling Midtrans ──────────────────────
     if (supabaseUrl && serviceKey) {
       const supabase = createClient(supabaseUrl, serviceKey);
       try {
@@ -165,15 +215,15 @@ Deno.serve(async (req: Request) => {
           invoiceId,
           resolvedProductId,
           player_id,
-          game_slug    ?? null,
+          game_slug          ?? null,
           denomination_label ?? null,
           paymentAmount,
-          customer_email ?? null,
-          zone_id        ?? null,
-          nickname       ?? null,
-          "",           // snap_token placeholder — updated after Midtrans responds
+          resolvedEmail,
+          zone_id            ?? null,
+          nickname           ?? null,
+          "",     // snap_token placeholder — updated in STEP 4
           null,
-          user_id ?? null,
+          resolvedUserId,
         );
       } catch (insertErr) {
         console.error("[create-order] Cannot save transaction, aborting:", insertErr);
@@ -181,7 +231,7 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // ── STEP 2: Demo mode (no Midtrans key) ──────────────────────────────────
+    // ── STEP 2: Demo mode ──────────────────────────────────────────────────────
     if (!midtransServerKey) {
       return json({
         success: true,
@@ -193,7 +243,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // ── STEP 3: Call Midtrans Snap API ────────────────────────────────────────
+    // ── STEP 3: Call Midtrans Snap API ─────────────────────────────────────────
     const midtransBaseUrl = midtransIsProduction
       ? "https://app.midtrans.com/snap/v1/transactions"
       : "https://app.sandbox.midtrans.com/snap/v1/transactions";
@@ -214,7 +264,7 @@ Deno.serve(async (req: Request) => {
         },
       ],
       customer_details: {
-        email: customer_email || "guest@ryuiicharge.id",
+        email: resolvedEmail || "guest@ryuiicharge.id",
         ...(nickname ? { first_name: nickname } : {}),
       },
       callbacks: {
@@ -243,28 +293,23 @@ Deno.serve(async (req: Request) => {
 
     if (!midtransResp.ok || !midtransResult.token) {
       console.error("[create-order] Midtrans error:", JSON.stringify(midtransResult));
-      const errMsg =
-        midtransResult.error_messages?.join(", ") ??
-        midtransResult.status_message ??
-        "Gagal membuat transaksi pembayaran";
-      return json({ success: false, message: errMsg }, 502);
+      return json({
+        success: false,
+        message: midtransResult.error_messages?.join(", ") ?? midtransResult.status_message ?? "Gagal membuat transaksi pembayaran",
+      }, 502);
     }
 
     console.log("[create-order] Midtrans token OK for:", invoiceId);
 
-    // ── STEP 4: Update transaction with snap token ─────────────────────────────
+    // ── STEP 4: Update row with snap_token (best-effort) ──────────────────────
     if (supabaseUrl && serviceKey) {
       const supabase = createClient(supabaseUrl, serviceKey);
       const { error: updErr } = await supabase
         .from("transactions")
-        .update({
-          snap_token:        midtransResult.token,
-          snap_redirect_url: midtransResult.redirect_url ?? null,
-        })
+        .update({ snap_token: midtransResult.token, snap_redirect_url: midtransResult.redirect_url ?? null })
         .eq("invoice_id", invoiceId);
-
       if (updErr) {
-        console.warn("[create-order] Could not update snap_token (column may not exist):", updErr.message);
+        console.warn("[create-order] snap_token update skipped (column may not exist):", updErr.message);
       }
     }
 
