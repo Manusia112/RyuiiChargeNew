@@ -10,7 +10,7 @@ export interface GameDenomination {
 export interface Game {
   slug: string;
   name: string;
-  category: "mobile" | "pc" | "voucher";
+  category: "mobile" | "pc";
   image: string;
   banner: string;
   description: string;
@@ -30,7 +30,6 @@ export interface Category {
 export const categories: Category[] = [
   { id: "mobile", label: "Game Mobile", icon: "📱", description: "ML, FF, PUBG & more" },
   { id: "pc", label: "Game PC", icon: "💻", description: "Steam, Valorant, Genshin" },
-  { id: "voucher", label: "Voucher Digital", icon: "🎫", description: "Netflix, Spotify, dll" },
 ];
 
 export const games: Game[] = [
