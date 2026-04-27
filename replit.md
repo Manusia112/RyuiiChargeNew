@@ -53,6 +53,19 @@ supabase functions deploy digiflazz-callback
 Then point Digiflazz's webhook URL to:
 `https://mbrvtkdmwnemvthzrvac.supabase.co/functions/v1/digiflazz-callback`
 
+### Deploy method (IMPORTANT)
+
+Use the multipart `deploy` endpoint, **not** the JSON body PATCH/POST endpoint. The JSON body endpoint was silently stripping the first 4 bytes of the source (`impo` from `import ...`), which caused all three functions to fail with `BOOT_ERROR` 503 ("Function failed to start"). That manifested in the frontend as `"Gagal menghubungi server, coba lagi"` when clicking **Bayar Sekarang**.
+
+Correct deploy command (per function):
+```bash
+curl -X POST "https://api.supabase.com/v1/projects/mbrvtkdmwnemvthzrvac/functions/deploy?slug=<SLUG>" \
+  -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+  -F "metadata={\"name\":\"<SLUG>\",\"verify_jwt\":false,\"entrypoint_path\":\"index.ts\"};type=application/json" \
+  -F "file=@supabase/functions/<SLUG>/index.ts;filename=index.ts;type=application/typescript"
+```
+After deploy, sanity-check by hitting the endpoint and confirming you get a JSON body (not `BOOT_ERROR`).
+
 ## Frontend (`artifacts/ryuii-charge`) — Cloudflare Pages deploy
 
 The frontend is a Vite + React SPA inside a pnpm workspace. `vite.config.ts` makes `PORT` optional during `vite build` (only required for `dev`/`preview`/`serve`), so static builds run cleanly on any CI.
