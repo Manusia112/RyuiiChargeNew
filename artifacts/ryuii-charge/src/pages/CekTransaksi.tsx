@@ -11,7 +11,33 @@ import Footer from "@/components/Footer";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase, supabaseConfigured } from "@/lib/supabase";
 import { toast } from "sonner";
-import { API, edgeHeaders } from "@/lib/api";
+import { API, edgeHeaders, authedEdgeHeaders } from "@/lib/api";
+
+// Server-side handler for destructive ops (bypasses RLS, enforces ownership).
+async function callManageTransaction(payload: Record<string, unknown>): Promise<{
+  success: boolean;
+  message?: string;
+  deleted?: number;
+  row?: { id: string; invoice_id: string; status: string };
+}> {
+  const headers = await authedEdgeHeaders();
+  const resp = await fetch(API.manageTransaction, {
+    method:  "POST",
+    headers,
+    body: JSON.stringify(payload),
+  });
+  let body: { success?: boolean; message?: string; deleted?: number; row?: { id: string; invoice_id: string; status: string } } = {};
+  try { body = await resp.json(); } catch { /* ignore parse errors */ }
+  if (!resp.ok) {
+    return { success: false, message: body.message ?? `HTTP ${resp.status}` };
+  }
+  return {
+    success: body.success === true,
+    message: body.message,
+    deleted: body.deleted,
+    row:     body.row,
+  };
+}
 
 declare global {
   interface Window {
@@ -188,20 +214,17 @@ const TransactionCard = ({ tx: initialTx, onLocalUpdate, onLocalRemove, showDele
   // ── Auto-mark expired rows as Gagal in DB (one-shot per row) ────────────
   useEffect(() => {
     if (!expired) return;
-    if (!supabaseConfigured || !supabase) return;
     let cancelled = false;
     (async () => {
       try {
-        await supabase!
-          .from("transactions")
-          .update({ status: "Gagal" })
-          .eq("id", tx.id)
-          .in("status", ["pending", "Menunggu", "menunggu"]);
-        if (!cancelled) {
+        const result = await callManageTransaction({ action: "cancel", transaction_id: tx.id });
+        if (!cancelled && result.success) {
           onLocalUpdate?.(tx.id, { status: "Gagal" });
+        } else if (!result.success) {
+          console.warn("[CekTransaksi] auto-fail skipped:", result.message);
         }
       } catch (err) {
-        console.warn("[CekTransaksi] auto-fail update skipped:", err);
+        console.warn("[CekTransaksi] auto-fail error:", err);
       }
     })();
     return () => { cancelled = true; };
@@ -335,24 +358,21 @@ const TransactionCard = ({ tx: initialTx, onLocalUpdate, onLocalRemove, showDele
 
   // ── Batalkan Pesanan ────────────────────────────────────────────────────
   const handleCancel = async () => {
-    if (!supabaseConfigured || !supabase) {
-      toast.error("Database belum terkonfigurasi.");
-      return;
-    }
     if (!window.confirm("Batalkan pesanan ini? Status akan diubah menjadi Gagal.")) return;
     setCancelling(true);
     try {
-      const { error } = await supabase
-        .from("transactions")
-        .update({ status: "Gagal" })
-        .eq("id", tx.id);
-      if (error) throw error;
+      const result = await callManageTransaction({ action: "cancel", transaction_id: tx.id });
+      // STRICT: only update local UI after server confirms success.
+      if (!result.success) {
+        toast.error(result.message ?? "Gagal membatalkan pesanan.");
+        return;
+      }
       toast.success("Pesanan dibatalkan.");
       setTx((prev) => ({ ...prev, status: "Gagal" }));
       onLocalUpdate?.(tx.id, { status: "Gagal" });
     } catch (err) {
       console.error("[CekTransaksi] Cancel error:", err);
-      toast.error("Gagal membatalkan pesanan.");
+      toast.error("Gagal menghubungi server, coba lagi.");
     } finally {
       setCancelling(false);
     }
@@ -360,17 +380,20 @@ const TransactionCard = ({ tx: initialTx, onLocalUpdate, onLocalRemove, showDele
 
   // ── Hapus item ──────────────────────────────────────────────────────────
   const handleDelete = async () => {
-    if (!supabaseConfigured || !supabase) return;
     if (!window.confirm("Apakah Anda yakin? Data histori tidak dapat dikembalikan.")) return;
     setDeleting(true);
     try {
-      const { error } = await supabase.from("transactions").delete().eq("id", tx.id);
-      if (error) throw error;
+      const result = await callManageTransaction({ action: "delete", transaction_id: tx.id });
+      // STRICT: only remove from UI after server confirms the row was deleted.
+      if (!result.success) {
+        toast.error(result.message ?? "Gagal menghapus histori.");
+        return;
+      }
       toast.success("Histori dihapus.");
       onLocalRemove?.(tx.id);
     } catch (err) {
       console.error("[CekTransaksi] Delete error:", err);
-      toast.error("Gagal menghapus histori.");
+      toast.error("Gagal menghubungi server, coba lagi.");
     } finally {
       setDeleting(false);
     }
@@ -552,7 +575,7 @@ const CekTransaksi = () => {
 
   // ── Hapus Semua: removes everything except active rows (Diproses/Menunggu) ─
   const handleDeleteAll = async () => {
-    if (!user || !supabaseConfigured || !supabase) return;
+    if (!user) return;
 
     const deletable = history.filter((row) => !isProtectedFromBulkDelete(row.status));
     if (deletable.length === 0) {
@@ -567,18 +590,18 @@ const CekTransaksi = () => {
 
     setBulkDeleting(true);
     try {
-      const idsToDelete = deletable.map((row) => row.id);
-      const { error } = await supabase
-        .from("transactions")
-        .delete()
-        .in("id", idsToDelete)
-        .eq("user_id", user.id);
-      if (error) throw error;
-      toast.success(`${idsToDelete.length} histori dihapus.`);
-      setHistory((prev) => prev.filter((row) => !idsToDelete.includes(row.id)));
+      const result = await callManageTransaction({ action: "delete_all" });
+      // STRICT: only refresh UI after server confirms deletion.
+      if (!result.success) {
+        toast.error(result.message ?? "Gagal menghapus histori.");
+        return;
+      }
+      toast.success(`${result.deleted ?? deletable.length} histori dihapus.`);
+      // Reload from DB so UI reflects the actual server state
+      await loadHistory();
     } catch (err) {
       console.error("[CekTransaksi] Bulk delete error:", err);
-      toast.error("Gagal menghapus histori.");
+      toast.error("Gagal menghubungi server, coba lagi.");
     } finally {
       setBulkDeleting(false);
     }

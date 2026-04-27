@@ -7,15 +7,28 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { supabase, supabaseConfigured } from "@/lib/supabase";
 
-type PaymentStatus = "loading" | "pending" | "success" | "failed" | "unknown";
+type PaymentStatus = "loading" | "pending" | "processing" | "success" | "failed" | "unknown";
 
 interface TransactionInfo {
   invoice_id: string;
   denomination_label?: string;
   game_slug?: string;
   amount?: number;
+  selling_price?: number;
+  total_price?: number;
   payment_method?: string;
   status: string;
+}
+
+// Normalize raw DB status (mixed English/Indonesian) into our UI bucket.
+function normalizeStatus(raw: string): PaymentStatus {
+  const s = (raw ?? "").toLowerCase().trim();
+  if (s === "berhasil" || s === "success" || s === "settlement" || s === "capture") return "success";
+  if (s === "gagal" || s === "failed" || s === "canceled" || s === "cancelled" ||
+      s === "expired" || s === "deny" || s === "expire") return "failed";
+  if (s === "diproses" || s === "processing") return "processing";
+  // pending | menunggu | unknown → treat as pending (still waiting for payment)
+  return "pending";
 }
 
 const formatPrice = (n: number) =>
@@ -33,25 +46,33 @@ const PaymentSuccess = () => {
   const [status, setStatus]   = useState<PaymentStatus>("loading");
   const [tx, setTx]           = useState<TransactionInfo | null>(null);
 
+  // Poll the DB until we reach a terminal status (success/failed) or until
+  // ~3 minutes elapse, so the UI reflects what the webhook just wrote.
   useEffect(() => {
     if (!orderId) {
       setStatus("unknown");
       return;
     }
 
-    const fetchStatus = async () => {
-      if (!supabaseConfigured || !supabase) {
-        setStatus("unknown");
-        return;
-      }
+    if (!supabaseConfigured || !supabase) {
+      setStatus("unknown");
+      return;
+    }
 
+    let cancelled = false;
+    let pollHandle: ReturnType<typeof setTimeout> | null = null;
+    let attempts  = 0;
+    const MAX_ATTEMPTS = 36; // 36 * 5s = 3 minutes of polling
+
+    const fetchOnce = async () => {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await supabase!
           .from("transactions")
-          .select("invoice_id, denomination_label, game_slug, amount, payment_method, status")
+          .select("invoice_id, denomination_label, game_slug, amount, selling_price, total_price, payment_method, status")
           .eq("invoice_id", orderId)
           .maybeSingle();
 
+        if (cancelled) return;
         if (error) throw error;
 
         if (!data) {
@@ -59,46 +80,69 @@ const PaymentSuccess = () => {
           return;
         }
 
-        setTx(data as TransactionInfo);
-        const s = (data as TransactionInfo).status;
-        if (s === "success")    setStatus("success");
-        else if (s === "failed") setStatus("failed");
-        else                    setStatus("pending");
+        const row = data as TransactionInfo;
+        setTx(row);
+        const next = normalizeStatus(row.status);
+        setStatus(next);
+
+        // Stop polling once we reach a terminal status
+        if (next === "success" || next === "failed") return;
+
+        // Otherwise schedule another poll
+        attempts += 1;
+        if (attempts < MAX_ATTEMPTS) {
+          pollHandle = setTimeout(fetchOnce, 5_000);
+        }
       } catch (err) {
+        if (cancelled) return;
         console.error("[PaymentSuccess] Status fetch error:", err);
-        setStatus("unknown");
+        // Don't permanently fail — just retry a few more times.
+        attempts += 1;
+        if (attempts < MAX_ATTEMPTS) {
+          pollHandle = setTimeout(fetchOnce, 5_000);
+        } else {
+          setStatus("unknown");
+        }
       }
     };
 
-    fetchStatus();
+    fetchOnce();
+    return () => {
+      cancelled = true;
+      if (pollHandle) clearTimeout(pollHandle);
+    };
   }, [orderId]);
 
   const renderIcon = () => {
-    if (status === "loading") return <Loader2 className="h-10 w-10 text-white animate-spin" />;
-    if (status === "success") return <CheckCircle className="h-10 w-10 text-white" />;
-    if (status === "failed")  return <XCircle className="h-10 w-10 text-white" />;
+    if (status === "loading")    return <Loader2 className="h-10 w-10 text-white animate-spin" />;
+    if (status === "success")    return <CheckCircle className="h-10 w-10 text-white" />;
+    if (status === "failed")     return <XCircle className="h-10 w-10 text-white" />;
+    if (status === "processing") return <Loader2 className="h-10 w-10 text-white animate-spin" />;
     return <Clock className="h-10 w-10 text-white" />;
   };
 
   const iconBg =
-    status === "success" ? "gradient-primary" :
-    status === "failed"  ? "bg-destructive" :
-    status === "loading" ? "bg-muted" :
+    status === "success"    ? "gradient-primary" :
+    status === "failed"     ? "bg-destructive" :
+    status === "loading"    ? "bg-muted" :
+    status === "processing" ? "bg-blue-500" :
     "bg-warning";
 
   const renderTitle = () => {
-    if (status === "loading")  return "Memeriksa Status Pembayaran...";
-    if (status === "success")  return "Pembayaran Berhasil!";
-    if (status === "failed")   return "Pembayaran Gagal";
-    if (status === "pending")  return "Menunggu Pembayaran";
+    if (status === "loading")    return "Memeriksa Status Pembayaran...";
+    if (status === "success")    return "Pembayaran Berhasil!";
+    if (status === "failed")     return "Pembayaran Gagal";
+    if (status === "processing") return "Sedang Diproses";
+    if (status === "pending")    return "Menunggu Pembayaran";
     return "Status Tidak Diketahui";
   };
 
   const renderDesc = () => {
-    if (status === "loading")  return "Harap tunggu sebentar...";
-    if (status === "success")  return "Item kamu akan segera dikirimkan ke akun game. Proses biasanya kurang dari 1 menit.";
-    if (status === "failed")   return "Pembayaran tidak berhasil diproses. Silakan coba lagi atau hubungi support.";
-    if (status === "pending")  return "Pembayaran belum kami terima. Jika sudah membayar, status akan diperbarui otomatis.";
+    if (status === "loading")    return "Harap tunggu sebentar...";
+    if (status === "success")    return "Item kamu sudah dikirim ke akun game. Cek inventory game-mu sekarang!";
+    if (status === "failed")     return "Pembayaran tidak berhasil diproses. Silakan coba lagi atau hubungi support.";
+    if (status === "processing") return "Pembayaran diterima — item sedang dikirim ke akun game. Tunggu sebentar...";
+    if (status === "pending")    return "Pembayaran belum kami terima. Jika sudah membayar, status akan diperbarui otomatis.";
     return orderId
       ? "Tidak dapat menemukan data transaksi untuk order ini. Gunakan Cek Transaksi untuk mencari secara manual."
       : "Tidak ada order ID pada URL. Gunakan Cek Transaksi untuk mencari pesananmu.";
