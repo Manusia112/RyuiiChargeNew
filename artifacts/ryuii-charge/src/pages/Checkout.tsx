@@ -154,17 +154,25 @@ const Checkout = () => {
 
       if (result.success === true && result.token) {
         setCreating(false);
-        console.log("[Checkout] Opening Midtrans Snap popup for invoice:", result.invoiceId);
+        const orderId = result.invoiceId ?? "";
+        const statusUrl = orderId
+          ? `/payment/success?order_id=${encodeURIComponent(orderId)}`
+          : "/payment/success";
+        const failedUrl = orderId
+          ? `/payment/failed?order_id=${encodeURIComponent(orderId)}`
+          : "/payment/failed";
+        console.log("[Checkout] Opening Midtrans Snap popup for invoice:", orderId);
         window.snap.pay(result.token, {
           onSuccess: () => {
-            navigate("/payment/success");
+            navigate(statusUrl);
           },
           onPending: () => {
             toast.info("Pembayaran sedang diproses. Cek status di halaman transaksi.");
-            navigate("/cek-transaksi");
+            navigate(statusUrl);
           },
           onError: () => {
             toast.error("Pembayaran gagal. Silakan coba lagi.");
+            navigate(failedUrl);
           },
           onClose: () => {
             toast.info("Popup ditutup. Klik Bayar Sekarang untuk melanjutkan.");

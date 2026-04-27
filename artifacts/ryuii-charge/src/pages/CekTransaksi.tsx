@@ -1,5 +1,8 @@
-import { useState, useEffect } from "react";
-import { Search, Clock, CheckCircle, XCircle, Loader2, RefreshCw, CreditCard, RotateCcw } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import {
+  Search, Clock, CheckCircle, XCircle, Loader2, RefreshCw,
+  CreditCard, RotateCcw, Ban, Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +10,6 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase, supabaseConfigured } from "@/lib/supabase";
-import OrderStatusTimeline from "@/components/OrderStatusTimeline";
 import { toast } from "sonner";
 import { API, edgeHeaders } from "@/lib/api";
 
@@ -27,37 +29,72 @@ declare global {
   }
 }
 
+// ── Constants ────────────────────────────────────────────────────────────────
+
+const PAYMENT_EXPIRY_MS = 30 * 60 * 1000; // 30 minutes (matches Midtrans expiry in create-order)
+
 const formatPrice = (n: number) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(n);
 
 const formatDate = (iso: string) =>
   new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
 
+const formatCountdown = (ms: number) => {
+  if (ms <= 0) return "00:00";
+  const totalSec = Math.floor(ms / 1000);
+  const m = String(Math.floor(totalSec / 60)).padStart(2, "0");
+  const s = String(totalSec % 60).padStart(2, "0");
+  return `${m}:${s}`;
+};
+
+// Status visual mapping (accepts both English lowercase and Indonesian capitalized)
 const statusColors: Record<string, string> = {
   success:    "bg-green-500/15 text-green-500 border-green-500/30",
+  berhasil:   "bg-green-500/15 text-green-500 border-green-500/30",
   pending:    "bg-yellow-500/15 text-yellow-500 border-yellow-500/30",
+  menunggu:   "bg-yellow-500/15 text-yellow-500 border-yellow-500/30",
   processing: "bg-blue-500/15 text-blue-500 border-blue-500/30",
+  diproses:   "bg-blue-500/15 text-blue-500 border-blue-500/30",
   failed:     "bg-red-500/15 text-red-500 border-red-500/30",
+  gagal:      "bg-red-500/15 text-red-500 border-red-500/30",
   canceled:   "bg-red-500/15 text-red-500 border-red-500/30",
   expired:    "bg-red-500/15 text-red-500 border-red-500/30",
 };
 
 const statusLabels: Record<string, string> = {
   success:    "Berhasil",
+  berhasil:   "Berhasil",
   pending:    "Menunggu",
+  menunggu:   "Menunggu",
   processing: "Diproses",
+  diproses:   "Diproses",
   failed:     "Gagal",
+  gagal:      "Gagal",
   canceled:   "Dibatalkan",
   expired:    "Kedaluwarsa",
 };
 
 const StatusIcon = ({ status }: { status: string }) => {
-  if (status === "success") return <CheckCircle className="h-4 w-4" />;
-  if (status === "failed" || status === "canceled" || status === "expired") return <XCircle className="h-4 w-4" />;
+  if (status === "success" || status === "berhasil") return <CheckCircle className="h-4 w-4" />;
+  if (["failed", "gagal", "canceled", "expired"].includes(status)) return <XCircle className="h-4 w-4" />;
   return <Clock className="h-4 w-4" />;
 };
 
-const isPending = (status: string) => status === "pending" || status === "menunggu";
+const isPendingStatus = (status: string) => {
+  const s = status?.toLowerCase() ?? "";
+  return s === "pending" || s === "menunggu";
+};
+
+const isProcessingStatus = (status: string) => {
+  const s = status?.toLowerCase() ?? "";
+  return s === "processing" || s === "diproses";
+};
+
+// "Hapus Semua" must skip these statuses (they're still active)
+const isProtectedFromBulkDelete = (status: string) => {
+  const s = status?.toLowerCase() ?? "";
+  return s === "diproses" || s === "menunggu" || s === "processing" || s === "pending";
+};
 
 interface Transaction {
   id: string;
@@ -75,33 +112,100 @@ interface Transaction {
   status: string;
   created_at: string;
   payment_token?: string | null;
-  snap_token?: string | null;  // fallback if payment_token col empty
+  snap_token?: string | null;
   payment_url?: string | null;
   snap_redirect_url?: string | null;
 }
 
-// Resolve the actual price across possible column names — DB uses `selling_price`
 const resolveAmount = (tx: Transaction): number => {
   const raw = tx.selling_price ?? tx.amount ?? tx.total_price ?? 0;
   const n = Number(raw);
   return Number.isFinite(n) && n > 0 ? n : 0;
 };
 
-// Resolve the snap token across possible column names
 const resolveToken = (tx: Transaction): string | null =>
   tx.payment_token ?? tx.snap_token ?? null;
 
+// ── Hook: live ticker for pending transactions ────────────────────────────
+function useCountdown(createdAtIso: string | undefined, active: boolean) {
+  const expiryMs = useMemo(() => {
+    if (!createdAtIso) return 0;
+    return new Date(createdAtIso).getTime() + PAYMENT_EXPIRY_MS;
+  }, [createdAtIso]);
+
+  const [remaining, setRemaining] = useState<number>(() =>
+    Math.max(0, expiryMs - Date.now()),
+  );
+
+  useEffect(() => {
+    if (!active || !expiryMs) return;
+    setRemaining(Math.max(0, expiryMs - Date.now()));
+    const id = setInterval(() => {
+      const r = Math.max(0, expiryMs - Date.now());
+      setRemaining(r);
+      if (r <= 0) clearInterval(id);
+    }, 1000);
+    return () => clearInterval(id);
+  }, [active, expiryMs]);
+
+  return { remaining, expired: active && expiryMs > 0 && remaining <= 0 };
+}
+
 // ── Transaction Card ─────────────────────────────────────────────────────────
-const TransactionCard = ({ tx: initialTx }: { tx: Transaction }) => {
-  const [tx, setTx]           = useState(initialTx);
+interface CardProps {
+  tx: Transaction;
+  onLocalUpdate?: (id: string, patch: Partial<Transaction>) => void;
+  onLocalRemove?: (id: string) => void;
+  showDelete?: boolean;
+}
+
+const TransactionCard = ({ tx: initialTx, onLocalUpdate, onLocalRemove, showDelete }: CardProps) => {
+  const [tx, setTx]             = useState(initialTx);
   const [changing, setChanging] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  // Sync if parent replaces the row (e.g., after refresh)
+  useEffect(() => { setTx(initialTx); }, [initialTx]);
 
   const normalizedStatus = tx.status?.toLowerCase() ?? "pending";
-  const colorClass       = statusColors[normalizedStatus] ?? statusColors.pending;
-  const labelText        = statusLabels[normalizedStatus] ?? tx.status;
-  const displayAmount    = resolveAmount(tx);
+  const isPending        = isPendingStatus(normalizedStatus);
   const activeToken      = resolveToken(tx);
-  const canResume        = isPending(normalizedStatus) && !!activeToken;
+
+  const { remaining, expired } = useCountdown(tx.created_at, isPending);
+
+  // Effective status: if the timer ran out on a pending row, treat as "Gagal" in UI
+  const effectiveStatus = expired ? "gagal" : normalizedStatus;
+  const colorClass      = statusColors[effectiveStatus] ?? statusColors.pending;
+  const labelText       = statusLabels[effectiveStatus] ?? tx.status;
+  const displayAmount   = resolveAmount(tx);
+
+  // Buttons hidden when expired or already non-pending
+  const canResume       = isPending && !expired && !!activeToken;
+  const canChangeMethod = isPending && !expired;
+  const canCancel       = isPending && !expired;
+
+  // ── Auto-mark expired rows as Gagal in DB (one-shot per row) ────────────
+  useEffect(() => {
+    if (!expired) return;
+    if (!supabaseConfigured || !supabase) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        await supabase!
+          .from("transactions")
+          .update({ status: "Gagal" })
+          .eq("id", tx.id)
+          .in("status", ["pending", "Menunggu", "menunggu"]);
+        if (!cancelled) {
+          onLocalUpdate?.(tx.id, { status: "Gagal" });
+        }
+      } catch (err) {
+        console.warn("[CekTransaksi] auto-fail update skipped:", err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [expired, tx.id, onLocalUpdate]);
 
   // ── Lanjutkan: re-open existing token ─────────────────────────────────────
   const handleResume = () => {
@@ -121,7 +225,7 @@ const TransactionCard = ({ tx: initialTx }: { tx: Transaction }) => {
     });
   };
 
-  // ── Ubah Metode: generate fresh token from backend ────────────────────────
+  // ── Ubah Metode: regenerate token, OVERWRITE existing row (no duplicate) ─
   const handleChangeMethod = async () => {
     setChanging(true);
     try {
@@ -136,7 +240,6 @@ const TransactionCard = ({ tx: initialTx }: { tx: Transaction }) => {
         method:  "POST",
         headers: edgeHeaders(),
         body: JSON.stringify({
-          // Send under EVERY known field name so backend validation passes
           original_invoice_id: tx.invoice_id,
           invoice_id:          tx.invoice_id,
           product_id:          tx.product_id,
@@ -164,29 +267,52 @@ const TransactionCard = ({ tx: initialTx }: { tx: Transaction }) => {
         return;
       }
 
-      // Backend already updated invoice_id in Supabase.
-      // Frontend only needs to sync the new payment_token so "Lanjutkan" still works.
-      if (supabaseConfigured && supabase) {
+      // Defensive: ensure no duplicate row exists. The backend repay
+      // function is expected to UPDATE the existing row in-place, but
+      // if it inserted a new row we collapse it here so the user only
+      // sees one entry per purchase intent.
+      if (supabaseConfigured && supabase && result.newInvoiceId !== tx.invoice_id) {
+        // Delete any orphan row that was just created with the new invoice_id…
+        await supabase
+          .from("transactions")
+          .delete()
+          .eq("invoice_id", result.newInvoiceId)
+          .neq("id", tx.id);
+
+        // …then move the original row to the new invoice_id + token.
         const { error: updateError } = await supabase
           .from("transactions")
-          .update({ payment_token: result.token })
-          .eq("invoice_id", result.newInvoiceId);
+          .update({
+            invoice_id:    result.newInvoiceId,
+            payment_token: result.token,
+            snap_token:    result.token,
+            status:        "pending",
+          })
+          .eq("id", tx.id);
 
         if (updateError) {
-          console.error("[CekTransaksi] Supabase token sync error:", updateError);
+          console.error("[CekTransaksi] row overwrite failed:", updateError);
         }
+      } else if (supabaseConfigured && supabase) {
+        // Same invoice_id — just refresh the token field.
+        await supabase
+          .from("transactions")
+          .update({ payment_token: result.token, snap_token: result.token })
+          .eq("id", tx.id);
       }
 
-      // Reflect updated data in the card immediately
-      setTx((prev) => ({
-        ...prev,
-        invoice_id:    result.newInvoiceId!,
-        payment_token: result.token!,
-      }));
+      // Reflect updated data locally
+      const patch: Partial<Transaction> = {
+        invoice_id:    result.newInvoiceId,
+        payment_token: result.token,
+        snap_token:    result.token,
+        status:        "pending",
+      };
+      setTx((prev) => ({ ...prev, ...patch }));
+      onLocalUpdate?.(tx.id, patch);
 
       console.log("[CekTransaksi] New token ready — opening Snap:", result.newInvoiceId);
 
-      // Open Snap with the fresh token
       window.snap.pay(result.token, {
         onSuccess: () => {
           toast.success("Pembayaran berhasil! Memperbarui status...");
@@ -207,8 +333,51 @@ const TransactionCard = ({ tx: initialTx }: { tx: Transaction }) => {
     }
   };
 
+  // ── Batalkan Pesanan ────────────────────────────────────────────────────
+  const handleCancel = async () => {
+    if (!supabaseConfigured || !supabase) {
+      toast.error("Database belum terkonfigurasi.");
+      return;
+    }
+    if (!window.confirm("Batalkan pesanan ini? Status akan diubah menjadi Gagal.")) return;
+    setCancelling(true);
+    try {
+      const { error } = await supabase
+        .from("transactions")
+        .update({ status: "Gagal" })
+        .eq("id", tx.id);
+      if (error) throw error;
+      toast.success("Pesanan dibatalkan.");
+      setTx((prev) => ({ ...prev, status: "Gagal" }));
+      onLocalUpdate?.(tx.id, { status: "Gagal" });
+    } catch (err) {
+      console.error("[CekTransaksi] Cancel error:", err);
+      toast.error("Gagal membatalkan pesanan.");
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  // ── Hapus item ──────────────────────────────────────────────────────────
+  const handleDelete = async () => {
+    if (!supabaseConfigured || !supabase) return;
+    if (!window.confirm("Apakah Anda yakin? Data histori tidak dapat dikembalikan.")) return;
+    setDeleting(true);
+    try {
+      const { error } = await supabase.from("transactions").delete().eq("id", tx.id);
+      if (error) throw error;
+      toast.success("Histori dihapus.");
+      onLocalRemove?.(tx.id);
+    } catch (err) {
+      console.error("[CekTransaksi] Delete error:", err);
+      toast.error("Gagal menghapus histori.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
-    <div className="glass-card p-5 space-y-3">
+    <div className="glass-card p-5 space-y-3" data-testid="transaction-card">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -216,10 +385,26 @@ const TransactionCard = ({ tx: initialTx }: { tx: Transaction }) => {
           <p className="font-semibold mt-0.5">{tx.denomination_label ?? "—"}</p>
         </div>
         <Badge className={`text-xs border flex items-center gap-1 ${colorClass}`}>
-          <StatusIcon status={normalizedStatus} />
+          <StatusIcon status={effectiveStatus} />
           {labelText}
         </Badge>
       </div>
+
+      {/* Live countdown for pending rows */}
+      {isPending && !expired && (
+        <div className="flex items-center justify-between rounded-md border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs">
+          <span className="text-yellow-400/90 flex items-center gap-1.5">
+            <Clock className="h-3.5 w-3.5" />
+            Bayar sebelum
+          </span>
+          <span
+            className="font-mono font-bold text-yellow-300 tabular-nums"
+            data-testid="countdown-timer"
+          >
+            {formatCountdown(remaining)}
+          </span>
+        </div>
+      )}
 
       {/* Details grid */}
       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
@@ -235,22 +420,24 @@ const TransactionCard = ({ tx: initialTx }: { tx: Transaction }) => {
         <span className="text-right text-xs">{formatDate(tx.created_at)}</span>
       </div>
 
-      {/* Action buttons — only for pending transactions */}
-      {canResume && (
-        <div className="flex flex-col gap-2 pt-1">
+      {/* Action buttons */}
+      <div className="flex flex-col gap-2 pt-1">
+        {canResume && (
           <Button
             onClick={handleResume}
-            disabled={changing}
+            disabled={changing || cancelling}
             className="w-full gradient-primary text-white gap-2"
             data-testid="button-resume-payment"
           >
             <CreditCard className="h-4 w-4" />
             Lanjutkan Pembayaran
           </Button>
+        )}
 
+        {canChangeMethod && (
           <Button
             onClick={handleChangeMethod}
-            disabled={changing}
+            disabled={changing || cancelling}
             variant="outline"
             className="w-full gap-2 border-border/50"
             data-testid="button-change-method"
@@ -267,8 +454,50 @@ const TransactionCard = ({ tx: initialTx }: { tx: Transaction }) => {
               </>
             )}
           </Button>
-        </div>
-      )}
+        )}
+
+        {canCancel && (
+          <Button
+            onClick={handleCancel}
+            disabled={cancelling || changing}
+            variant="outline"
+            className="w-full gap-2 border-destructive/40 text-destructive hover:bg-destructive/10"
+            data-testid="button-cancel-order"
+          >
+            {cancelling ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Membatalkan...
+              </>
+            ) : (
+              <>
+                <Ban className="h-4 w-4" />
+                Batalkan Pesanan
+              </>
+            )}
+          </Button>
+        )}
+
+        {showDelete && !canCancel && !isProcessingStatus(normalizedStatus) && (
+          <Button
+            onClick={handleDelete}
+            disabled={deleting}
+            variant="ghost"
+            size="sm"
+            className="w-full gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+            data-testid="button-delete-history"
+          >
+            {deleting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                <Trash2 className="h-4 w-4" />
+                Hapus Histori
+              </>
+            )}
+          </Button>
+        )}
+      </div>
     </div>
   );
 };
@@ -280,6 +509,7 @@ const CekTransaksi = () => {
   const [history, setHistory]               = useState<Transaction[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError]     = useState<string | null>(null);
+  const [bulkDeleting, setBulkDeleting]     = useState(false);
 
   const [invoiceId, setInvoiceId]           = useState("");
   const [guestResult, setGuestResult]       = useState<Transaction | null>(null);
@@ -309,7 +539,52 @@ const CekTransaksi = () => {
 
   useEffect(() => {
     if (user) loadHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  const patchLocal = (id: string, patch: Partial<Transaction>) => {
+    setHistory((prev) => prev.map((row) => (row.id === id ? { ...row, ...patch } : row)));
+  };
+
+  const removeLocal = (id: string) => {
+    setHistory((prev) => prev.filter((row) => row.id !== id));
+  };
+
+  // ── Hapus Semua: removes everything except active rows (Diproses/Menunggu) ─
+  const handleDeleteAll = async () => {
+    if (!user || !supabaseConfigured || !supabase) return;
+
+    const deletable = history.filter((row) => !isProtectedFromBulkDelete(row.status));
+    if (deletable.length === 0) {
+      toast.info("Tidak ada histori yang bisa dihapus (semua transaksi masih aktif).");
+      return;
+    }
+
+    if (!window.confirm(
+      `Apakah Anda yakin? Data histori tidak dapat dikembalikan.\n\n` +
+      `${deletable.length} histori akan dihapus. Transaksi yang masih Menunggu / Diproses tidak akan terhapus.`
+    )) return;
+
+    setBulkDeleting(true);
+    try {
+      const idsToDelete = deletable.map((row) => row.id);
+      const { error } = await supabase
+        .from("transactions")
+        .delete()
+        .in("id", idsToDelete)
+        .eq("user_id", user.id);
+      if (error) throw error;
+      toast.success(`${idsToDelete.length} histori dihapus.`);
+      setHistory((prev) => prev.filter((row) => !idsToDelete.includes(row.id)));
+    } catch (err) {
+      console.error("[CekTransaksi] Bulk delete error:", err);
+      toast.error("Gagal menghapus histori.");
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  const deletableCount = history.filter((row) => !isProtectedFromBulkDelete(row.status)).length;
 
   const handleGuestSearch = async () => {
     if (!invoiceId.trim()) return;
@@ -357,18 +632,35 @@ const CekTransaksi = () => {
         {/* ── Authenticated: auto-loaded history ── */}
         {user && (
           <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
               <h2 className="font-display font-semibold text-lg">Riwayat Pesananku</h2>
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-1.5 border-border/50 text-xs"
-                onClick={loadHistory}
-                disabled={historyLoading}
-              >
-                <RefreshCw className={`h-3.5 w-3.5 ${historyLoading ? "animate-spin" : ""}`} />
-                Refresh
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 border-destructive/40 text-destructive hover:bg-destructive/10 text-xs"
+                  onClick={handleDeleteAll}
+                  disabled={bulkDeleting || historyLoading || deletableCount === 0}
+                  data-testid="button-delete-all"
+                >
+                  {bulkDeleting ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-3.5 w-3.5" />
+                  )}
+                  Hapus Semua
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 border-border/50 text-xs"
+                  onClick={loadHistory}
+                  disabled={historyLoading}
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${historyLoading ? "animate-spin" : ""}`} />
+                  Refresh
+                </Button>
+              </div>
             </div>
 
             {historyLoading && (
@@ -389,7 +681,15 @@ const CekTransaksi = () => {
 
             {!historyLoading && history.length > 0 && (
               <div className="space-y-3">
-                {history.map((tx) => <TransactionCard key={tx.id} tx={tx} />)}
+                {history.map((tx) => (
+                  <TransactionCard
+                    key={tx.id}
+                    tx={tx}
+                    onLocalUpdate={patchLocal}
+                    onLocalRemove={removeLocal}
+                    showDelete
+                  />
+                ))}
               </div>
             )}
           </div>
@@ -402,7 +702,7 @@ const CekTransaksi = () => {
           )}
           <div className="flex gap-3 mb-6">
             <Input
-              placeholder="Masukkan Invoice ID... (contoh: RC-1234567890-ABCDEF)"
+              placeholder="Masukkan Invoice ID... (contoh: RYUII-1234567890-ABCD)"
               value={invoiceId}
               onChange={(e) => setInvoiceId(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleGuestSearch()}

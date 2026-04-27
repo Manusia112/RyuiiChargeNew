@@ -24,7 +24,11 @@ const formatPrice = (n: number) =>
 const PaymentSuccess = () => {
   const search = useSearch();
   const params = new URLSearchParams(search);
-  const orderId = params.get("orderId") ?? params.get("merchantOrderId") ?? "";
+  const orderId =
+    params.get("order_id") ??
+    params.get("orderId") ??
+    params.get("merchantOrderId") ??
+    "";
 
   const [status, setStatus]   = useState<PaymentStatus>("loading");
   const [tx, setTx]           = useState<TransactionInfo | null>(null);
