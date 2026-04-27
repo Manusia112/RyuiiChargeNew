@@ -52,3 +52,19 @@ supabase functions deploy digiflazz-callback
 
 Then point Digiflazz's webhook URL to:
 `https://mbrvtkdmwnemvthzrvac.supabase.co/functions/v1/digiflazz-callback`
+
+## Frontend (`artifacts/ryuii-charge`) — Cloudflare Pages deploy
+
+The frontend is a Vite + React SPA inside a pnpm workspace. `vite.config.ts` makes `PORT` optional during `vite build` (only required for `dev`/`preview`/`serve`), so static builds run cleanly on any CI.
+
+Because the artifact uses `catalog:` and `workspace:*` dependencies, **Cloudflare Pages must build from the repo root, not from `artifacts/ryuii-charge/`**. Use these settings in the Cloudflare Pages project:
+
+- Framework preset: **None**
+- Root directory: **(empty / repo root)** — leave blank
+- Build command: `npx pnpm@10 install --no-frozen-lockfile && npx pnpm@10 --filter @workspace/ryuii-charge build`
+- Build output directory: `artifacts/ryuii-charge/dist/public`
+- Environment variables:
+  - `NODE_VERSION=24`
+  - `NPM_FLAGS=--version` (skips Cloudflare's automatic `npm install`)
+
+SPA fallback routing is handled by `artifacts/ryuii-charge/public/_redirects` (`/* /index.html 200`).
