@@ -544,7 +544,7 @@ const Admin = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <nav className="glass-card border-b border-border/50 sticky top-0 z-50">
+      <nav className="sticky top-0 z-50 border-b border-border/60 bg-background">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4 overflow-x-auto">
             <Link to="/" className="flex items-center gap-2 shrink-0">
@@ -590,7 +590,7 @@ const Admin = () => {
                 { label: "Pesanan Hari Ini", value: dbTransactions.filter((t) => new Date(t.created_at).toDateString() === new Date().toDateString()).length.toString(), icon: TrendingUp, color: "text-secondary" },
                 { label: "Success Rate", value: `${successRate}%`, icon: BarChart3, color: "text-amber-400" },
               ].map((stat) => (
-                <div key={stat.label} className="glass-card p-5" data-testid={`card-stat-${stat.label.toLowerCase().replace(/\s/g, "-")}`}>
+                <div key={stat.label} className="game-card p-5" data-testid={`card-stat-${stat.label.toLowerCase().replace(/\s/g, "-")}`}>
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-xs text-muted-foreground">{stat.label}</p>
                     <stat.icon className={`h-4 w-4 ${stat.color}`} />
@@ -601,7 +601,7 @@ const Admin = () => {
             </div>
 
             {!supabaseConfigured && (
-              <div className="glass-card p-4 border border-amber-500/30 bg-amber-500/5">
+              <div className="game-card p-4 border border-amber-500/30 bg-amber-500/5">
                 <p className="text-amber-400 text-sm font-semibold mb-1">Mode Demo — Supabase Belum Terkonfigurasi</p>
                 <p className="text-muted-foreground text-xs">
                   Tambahkan <code className="text-primary">VITE_SUPABASE_URL</code> dan <code className="text-primary">VITE_SUPABASE_ANON_KEY</code> ke secrets untuk mengaktifkan database real, upload gambar, dan autentikasi.
@@ -609,7 +609,7 @@ const Admin = () => {
               </div>
             )}
 
-            <div className="glass-card p-5">
+            <div className="game-card p-5">
               <h3 className="font-display font-semibold mb-4">Transaksi Terbaru</h3>
               {loadingTransactions ? (
                 <div className="flex justify-center py-6">
@@ -661,7 +661,7 @@ const Admin = () => {
                 data-testid="input-search-transactions"
               />
             </div>
-            <div className="glass-card overflow-hidden">
+            <div className="game-card overflow-hidden">
               {loadingTransactions ? (
                 <div className="flex justify-center py-10">
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -743,7 +743,7 @@ const Admin = () => {
             </div>
 
             {/* Daftar Kategori Game */}
-            <div className="glass-card p-5">
+            <div className="game-card p-5">
               <h2 className="font-display font-semibold text-lg mb-4">Kategori Game</h2>
               {loadingCategories ? (
                 <div className="flex justify-center py-8">
@@ -756,7 +756,7 @@ const Admin = () => {
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
                   {categories.map((cat) => (
-                    <div key={cat.id} className="glass-card p-3 relative group">
+                    <div key={cat.id} className="game-card p-3 relative group">
                       <div className="aspect-square rounded-lg overflow-hidden bg-muted/40 mb-2">
                         {cat.image_url ? (
                           <img src={cat.image_url} alt={cat.name} className="w-full h-full object-cover" />
@@ -792,7 +792,7 @@ const Admin = () => {
             ) : (
               <div className="grid grid-cols-1 gap-4">
                 {products.map((product) => (
-                  <div key={product.id} className="glass-card p-5">
+                  <div key={product.id} className="game-card p-5">
                     <div className="flex flex-col md:flex-row gap-5">
                       {/* Gambar produk (upload tetap di sini untuk edit produk yang sudah ada) */}
                       <div className="flex items-start gap-4">
@@ -900,7 +900,7 @@ const Admin = () => {
                                   pricing_mode: product.pricing_mode === "manual" ? "automatic" : "manual",
                                 })
                               }
-                              className="flex items-center gap-2 glass-card px-3 py-1.5 hover:border-primary/50 transition-all"
+                              className="flex items-center gap-2 game-card px-3 py-1.5 hover:border-primary/50 transition-all"
                               data-testid={`toggle-pricing-mode-${product.slug}`}
                             >
                               {product.pricing_mode === "automatic" ? (
@@ -954,7 +954,7 @@ const Admin = () => {
                               </div>
                               <div>
                                 <Label className="text-xs text-muted-foreground mb-1 block">Harga Jual (kalkulasi)</Label>
-                                <div className="glass-card px-3 py-2 border-primary/30">
+                                <div className="game-card px-3 py-2 border-primary/30">
                                   <p className="text-primary font-bold text-sm">{formatPrice(computedPrice(product))}</p>
                                 </div>
                               </div>
@@ -1021,7 +1021,7 @@ const Admin = () => {
               </p>
             </div>
 
-            <div className="glass-card p-5 space-y-4 max-w-sm">
+            <div className="game-card p-5 space-y-4 max-w-sm">
               <div>
                 <Label className="text-sm mb-2 block">Markup Global (%)</Label>
                 <div className="flex items-center gap-3">
@@ -1062,7 +1062,7 @@ const Admin = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {products.map((game) => (
-                <div key={game.slug} className="glass-card p-4 flex items-center gap-4">
+                <div key={game.slug} className="game-card p-4 flex items-center gap-4">
                   {game.image_url ? (
                     <img src={game.image_url} alt={game.name} className="w-12 h-12 rounded-lg object-cover shrink-0" />
                   ) : (
@@ -1120,7 +1120,7 @@ const Admin = () => {
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
           onClick={(e) => { if (e.target === e.currentTarget) setShowAddCategoryModal(false); }}
         >
-          <div className="glass-card w-full max-w-md max-h-[90vh] overflow-y-auto p-6 space-y-5 relative">
+          <div className="game-card w-full max-w-md max-h-[90vh] overflow-y-auto p-6 space-y-5 relative">
             <div className="flex items-center justify-between">
               <h2 className="font-display text-xl font-bold">Tambah Kategori Game</h2>
               <button
@@ -1271,7 +1271,7 @@ const Admin = () => {
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
           onClick={(e) => { if (e.target === e.currentTarget) setShowAddModal(false); }}
         >
-          <div className="glass-card w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-5 relative">
+          <div className="game-card w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-5 relative">
             <div className="flex items-center justify-between">
               <h2 className="font-display text-xl font-bold">Tambah Produk Baru</h2>
               <button
@@ -1461,7 +1461,7 @@ const Admin = () => {
 
             {/* Preview harga otomatis */}
             {newProduct.pricing_mode === "automatic" && newProduct.cost_price > 0 && (
-              <div className="glass-card px-3 py-2 border-primary/30">
+              <div className="game-card px-3 py-2 border-primary/30">
                 <p className="text-xs text-muted-foreground mb-0.5">Harga Jual (kalkulasi)</p>
                 <p className="text-primary font-bold text-sm">
                   {formatPrice(Math.ceil((newProduct.cost_price * (1 + newProduct.markup_percent / 100)) / 100) * 100)}
@@ -1515,7 +1515,7 @@ const Admin = () => {
       {/* Modal Konfirmasi Hapus */}
       {deleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="glass-card w-full max-w-sm p-6 space-y-4 shadow-2xl">
+          <div className="game-card w-full max-w-sm p-6 space-y-4 shadow-2xl">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center shrink-0">
                 <Trash2 className="h-5 w-5 text-red-400" />

@@ -33,7 +33,7 @@ const PaymentMethodSelector = ({ selected, onSelect }: Props) => (
       <button
         key={m.id}
         onClick={() => onSelect(m.id)}
-        className={`w-full glass-card p-4 flex items-center gap-4 text-left transition-all duration-300 hover:border-primary/50 ${
+        className={`w-full game-card p-4 flex items-center gap-4 text-left transition-all duration-300 ${
           selected === m.id ? "border-primary ring-1 ring-primary/50 bg-primary/10" : ""
         }`}
         data-testid={`button-payment-${m.id}`}

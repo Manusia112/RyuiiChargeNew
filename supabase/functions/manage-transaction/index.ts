@@ -84,7 +84,7 @@ Deno.serve(async (req: Request) => {
 
       const { data, error } = await adminClient
         .from("transactions")
-        .update({ status: "Gagal" })
+        .update({ status: "failed" })
         .eq("id", txId)
         .eq("user_id", userId)
         .select("id, invoice_id, status");

@@ -98,7 +98,7 @@ const Login = () => {
           <p className="text-muted-foreground text-sm mt-1">Masuk untuk melihat riwayat pesanan</p>
         </div>
 
-        <div className="glass-card p-6 space-y-4">
+        <div className="game-card p-6 space-y-4">
           {!supabaseConfigured && (
             <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground">
               <p className="font-medium mb-1">Akun demo (Supabase belum terkonfigurasi):</p>

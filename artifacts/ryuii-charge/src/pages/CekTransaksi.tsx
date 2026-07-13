@@ -400,7 +400,7 @@ const TransactionCard = ({ tx: initialTx, onLocalUpdate, onLocalRemove, showDele
   };
 
   return (
-    <div className="glass-card p-5 space-y-3" data-testid="transaction-card">
+    <div className="game-card p-5 space-y-3" data-testid="transaction-card">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -693,11 +693,11 @@ const CekTransaksi = () => {
             )}
 
             {historyError && !historyLoading && (
-              <div className="glass-card p-5 text-center text-sm text-destructive">{historyError}</div>
+              <div className="game-card p-5 text-center text-sm text-destructive">{historyError}</div>
             )}
 
             {!historyLoading && !historyError && history.length === 0 && (
-              <div className="glass-card p-8 text-center text-muted-foreground text-sm">
+              <div className="game-card p-8 text-center text-muted-foreground text-sm">
                 Belum ada transaksi. Topup pertamamu sekarang!
               </div>
             )}
@@ -753,7 +753,7 @@ const CekTransaksi = () => {
           )}
 
           {guestNotFound && (
-            <div className="glass-card p-6 text-center" data-testid="transaction-not-found">
+            <div className="game-card p-6 text-center" data-testid="transaction-not-found">
               <p className="text-muted-foreground">Invoice ID tidak ditemukan.</p>
               <p className="text-sm text-muted-foreground mt-1">Periksa kembali Invoice ID yang kamu masukkan.</p>
             </div>

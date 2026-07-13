@@ -263,7 +263,7 @@ const Footer = () => {
               <h4 className="font-display font-semibold mb-4 text-sm">Metode Pembayaran</h4>
               <div className="grid grid-cols-3 gap-2">
                 {["QRIS", "OVO", "DANA", "GoPay", "BCA", "BNI"].map((m) => (
-                  <div key={m} className="glass-card px-2 py-1 text-center">
+                  <div key={m} className="game-card px-2 py-1 text-center">
                     <span className="text-xs text-muted-foreground">{m}</span>
                   </div>
                 ))}

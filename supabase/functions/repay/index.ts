@@ -29,6 +29,7 @@ Deno.serve(async (req: Request) => {
   try {
     const supabaseUrl          = Deno.env.get("SUPABASE_URL");
     const serviceKey           = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const anonKey              = Deno.env.get("SUPABASE_ANON_KEY");
     const midtransServerKey    = Deno.env.get("MIDTRANS_SERVER_KEY");
     const midtransIsProduction = Deno.env.get("MIDTRANS_IS_PRODUCTION") === "true";
 
@@ -41,17 +42,34 @@ Deno.serve(async (req: Request) => {
     if (!originalInvoiceId) {
       return json({ success: false, message: "original_invoice_id wajib diisi" }, 400);
     }
-    if (!supabaseUrl || !serviceKey) {
+    if (!supabaseUrl || !serviceKey || !anonKey) {
       return json({ success: false, message: "Supabase belum dikonfigurasi" }, 500);
     }
 
+    // ── Auth: resolve user_id from JWT ──────────────────────────────────
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const token      = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+    if (!token || token === anonKey) {
+      return json({ success: false, message: "Login dulu untuk melakukan aksi ini" }, 401);
+    }
+
+    const authClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
+    const { data: userData, error: userError } = await authClient.auth.getUser(token);
+    if (userError || !userData?.user?.id) {
+      return json({ success: false, message: "Sesi tidak valid, silakan login ulang" }, 401);
+    }
+    const userId = userData.user.id;
+
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // ── Lookup the existing row ──────────────────────────────────────────
+    // ── Lookup the existing row (only own transactions) ──────────────────
     const { data: existing, error: lookupError } = await supabase
       .from("transactions")
       .select("*")
       .eq("invoice_id", originalInvoiceId)
+      .eq("user_id", userId)
       .maybeSingle();
 
     if (lookupError) {
@@ -87,7 +105,7 @@ Deno.serve(async (req: Request) => {
       ((existing as Record<string, unknown>).customer_email as string | null) ?? "guest@ryuiicharge.id";
 
     // ── Generate new invoice_id (Midtrans rejects reused order_id) ──────
-    const random4      = Math.random().toString(36).slice(2, 6).toUpperCase();
+    const random4      = crypto.randomUUID().slice(0, 4).toUpperCase();
     const newInvoiceId = `RYUII-${Date.now()}-${random4}`;
     const productName  = denominationLabel || productId || "Top-up";
 
@@ -115,7 +133,7 @@ Deno.serve(async (req: Request) => {
     // ── Call Midtrans Snap with the new invoice_id ──────────────────────
     const midtransBaseUrl = midtransIsProduction
       ? "https://app.midtrans.com/snap/v1/transactions"
-      : "https://app.midtrans.com/snap/v1/transactions";
+      : "https://app.sandbox.midtrans.com/snap/v1/transactions";
 
     const authString = btoa(`${midtransServerKey}:`);
 

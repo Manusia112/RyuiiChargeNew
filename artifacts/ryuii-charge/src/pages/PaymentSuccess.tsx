@@ -157,7 +157,7 @@ const PaymentSuccess = () => {
         <p className="text-muted-foreground mb-6 text-sm">{renderDesc()}</p>
 
         {tx && status !== "loading" && (
-          <div className="glass-card p-4 text-left text-sm space-y-2 mb-6">
+          <div className="game-card p-4 text-left text-sm space-y-2 mb-6">
             {orderId && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Invoice ID</span>

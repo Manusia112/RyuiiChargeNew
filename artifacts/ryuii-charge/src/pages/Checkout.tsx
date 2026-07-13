@@ -201,7 +201,7 @@ const Checkout = () => {
         <h1 className="font-display text-2xl font-bold mb-6">Checkout</h1>
 
         <div className="space-y-4">
-          <div className="glass-card p-5 space-y-3">
+          <div className="game-card p-5 space-y-3">
             <h3 className="font-display font-semibold">Detail Pesanan</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">

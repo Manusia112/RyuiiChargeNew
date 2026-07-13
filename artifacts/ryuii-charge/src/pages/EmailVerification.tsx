@@ -41,7 +41,7 @@ const EmailVerification = () => {
           </Link>
         </div>
 
-        <div className="glass-card p-8 text-center space-y-6">
+        <div className="game-card p-8 text-center space-y-6">
           <div className="flex justify-center">
             <div className="w-20 h-20 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
               <Mail className="h-10 w-10 text-primary" />

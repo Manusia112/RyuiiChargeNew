@@ -60,31 +60,24 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent" />
-        <div className="container mx-auto px-4 py-16 md:py-24 relative">
-          <div className="max-w-2xl mx-auto text-center space-y-6">
-            <div className="inline-flex items-center gap-2 glass-card px-4 py-1.5 text-sm text-primary">
-              <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
-              Proses Otomatis 24/7
-            </div>
-            <h1 className="font-display text-4xl md:text-5xl font-bold leading-tight text-foreground">
-              Top Up Game{" "}
-              <span className="gradient-text">Instan & Murah</span>
-            </h1>
-            <p className="text-muted-foreground text-lg">
-              Proses otomatis, harga termurah, dan terpercaya. Diamond, UC, Coins, dan masih banyak lagi!
-            </p>
-            <div className="relative max-w-md mx-auto">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-              <Input
-                placeholder="Cari game..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-12 h-12 text-base bg-muted/50 border-border/50 rounded-xl focus:border-primary"
-                data-testid="input-search-hero"
-              />
-            </div>
+      <section className="container mx-auto px-4 pt-16 pb-8 md:pt-24 md:pb-12">
+        <div className="max-w-xl mx-auto text-center space-y-5">
+          <h1 className="font-display text-4xl md:text-5xl font-bold leading-tight text-foreground">
+            Top Up Game{" "}
+            <span className="gradient-text">Instan & Murah</span>
+          </h1>
+          <p className="text-muted-foreground text-base md:text-lg leading-relaxed">
+            Diamond, UC, Coins — proses otomatis 24/7, harga termurah se-Indonesia.
+          </p>
+          <div className="relative max-w-sm mx-auto">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Input
+              placeholder="Cari game..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-12 h-12 text-base bg-muted/50 border-border/50 rounded-xl focus:border-primary"
+              data-testid="input-search-hero"
+            />
           </div>
         </div>
       </section>
@@ -112,10 +105,10 @@ const Index = () => {
                 <Link
                   key={cat.slug}
                   to={`/game/${cat.slug}`}
-                  className="glass-card overflow-hidden hover:border-primary/50 transition-all duration-300 group cursor-pointer block"
+                  className="game-card group cursor-pointer block"
                   data-testid={`card-game-${cat.slug}`}
                 >
-                  <div className="aspect-square overflow-hidden">
+                  <div className="aspect-square overflow-hidden rounded-t-[calc(var(--radius)-1px)]">
                     {cat.image_url ? (
                       <img
                         src={cat.image_url}
@@ -150,7 +143,7 @@ const Index = () => {
               { label: "Produk Tersedia", value: "1000+" },
               { label: "Uptime Layanan", value: "99.9%" },
             ].map((stat) => (
-              <div key={stat.label} className="glass-card p-5 text-center">
+              <div key={stat.label} className="stat-card">
                 <p className="font-display text-2xl font-bold text-primary">{stat.value}</p>
                 <p className="text-sm text-muted-foreground mt-1">{stat.label}</p>
               </div>

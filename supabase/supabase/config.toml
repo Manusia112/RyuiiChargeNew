@@ -61,6 +61,12 @@ verify_jwt = false
 [functions.create-order]
 verify_jwt = false
 
+[functions.repay]
+verify_jwt = true
+
+[functions.manage-transaction]
+verify_jwt = true
+
 [analytics]
 enabled = false
 port = 54327

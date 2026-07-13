@@ -13,10 +13,10 @@ const DenominationCard = ({ denomination, selected, onSelect }: Props) => {
   return (
     <button
       onClick={() => onSelect(denomination)}
-      className={`glass-card p-4 text-left transition-all duration-300 hover:border-primary/70 w-full ${
+      className={`denom-card ${
         selected
-          ? "border-primary ring-1 ring-primary/50 bg-primary/10"
-          : "hover:bg-muted/30"
+          ? "selected"
+          : ""
       }`}
       data-testid={`card-denomination-${denomination.id}`}
     >

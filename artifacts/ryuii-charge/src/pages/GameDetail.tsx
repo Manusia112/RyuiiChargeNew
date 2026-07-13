@@ -465,7 +465,7 @@ const GameDetail = () => {
           <div className="md:col-span-2 space-y-6">
             <div>
               {gamePlatform && (
-                <span className="inline-block text-xs font-medium text-primary glass-card px-2 py-1 mb-2 capitalize">
+                <span className="inline-block text-xs font-medium text-primary game-card px-2 py-1 mb-2 capitalize">
                   {gamePlatform}
                 </span>
               )}
@@ -536,7 +536,7 @@ const GameDetail = () => {
           </div>
 
           <div className="md:col-span-1">
-            <div className="glass-card p-5 space-y-4 sticky top-24">
+            <div className="game-card p-5 space-y-4 sticky top-24">
               <h3 className="font-display font-semibold text-lg">Ringkasan</h3>
 
               <div className="space-y-2 text-sm">

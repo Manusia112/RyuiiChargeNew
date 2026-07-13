@@ -128,7 +128,7 @@ const Register = () => {
           <p className="text-muted-foreground text-sm mt-1">Bergabung dan nikmati top up lebih mudah</p>
         </div>
 
-        <div className="glass-card p-6 space-y-4">
+        <div className="game-card p-6 space-y-4">
           {supabaseConfigured && (
             <>
               <Button
