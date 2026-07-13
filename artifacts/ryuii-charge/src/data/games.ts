@@ -28,8 +28,8 @@ export interface Category {
 }
 
 export const categories: Category[] = [
-  { id: "mobile", label: "Game Mobile", icon: "📱", description: "ML, FF, PUBG & more" },
-  { id: "pc", label: "Game PC", icon: "💻", description: "Steam, Valorant, Genshin" },
+  { id: "mobile", label: "Game Mobile", icon: "", description: "ML, FF, PUBG & more" },
+  { id: "pc", label: "Game PC", icon: "", description: "Steam, Valorant, Genshin" },
 ];
 
 export const games: Game[] = [

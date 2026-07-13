@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import {
   BarChart3, DollarSign, ShoppingCart, TrendingUp, Settings,
-  LogOut, Zap, Package, Upload, Save, Loader2, ImageIcon,
+  LogOut, Gem, Package, Upload, Save, Loader2, ImageIcon,
   ToggleLeft, ToggleRight, Plus, X, Trash2, FolderOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -549,7 +549,7 @@ const Admin = () => {
           <div className="flex items-center gap-4 overflow-x-auto">
             <Link to="/" className="flex items-center gap-2 shrink-0">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-primary">
-                <Zap className="h-4 w-4 text-white" />
+                <Gem className="h-4 w-4 text-white" />
               </div>
               <span className="font-display font-bold text-foreground hidden sm:block">RyuiiCharge</span>
               <span className="text-muted-foreground text-xs hidden sm:block">/ Admin</span>

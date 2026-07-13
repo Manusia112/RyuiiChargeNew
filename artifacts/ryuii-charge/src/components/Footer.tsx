@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { Zap, X, FileText, RefreshCcw } from "lucide-react";
+import { Gem, X, FileText, RefreshCcw } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -190,7 +190,7 @@ const Footer = () => {
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                  <Zap className="h-4 w-4 text-primary-foreground" />
+                  <Gem className="h-4 w-4 text-primary-foreground" />
                 </div>
                 <span className="font-display font-bold text-foreground">RyuiiCharge</span>
               </div>
@@ -273,7 +273,7 @@ const Footer = () => {
 
           <div className="mt-8 pt-8 border-t border-border/30 flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-xs text-muted-foreground">
-              © 2025 RyuiiCharge. All rights reserved.
+              © 2026 RyuiiCharge. All rights reserved.
             </p>
             <p className="text-xs text-muted-foreground">
               Transaksi dilindungi dengan enkripsi SSL 256-bit

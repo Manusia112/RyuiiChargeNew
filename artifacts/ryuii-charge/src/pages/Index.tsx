@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
-import { Search, Loader2, Zap } from "lucide-react";
+import { Search, Loader2, Smartphone, Monitor } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -16,6 +16,11 @@ interface CategoryItem {
   image_url: string | null;
   platform: string | null;
 }
+
+const platformIcons: Record<string, typeof Smartphone> = {
+  Mobile: Smartphone,
+  PC: Monitor,
+};
 
 const Index = () => {
   const [search, setSearch] = useState("");
@@ -60,24 +65,45 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      <section className="container mx-auto px-4 pt-16 pb-8 md:pt-24 md:pb-12">
-        <div className="max-w-xl mx-auto text-center space-y-5">
-          <h1 className="font-display text-4xl md:text-5xl font-bold leading-tight text-foreground">
-            Top Up Game{" "}
-            <span className="gradient-text">Instan & Murah</span>
-          </h1>
-          <p className="text-muted-foreground text-base md:text-lg leading-relaxed">
-            Diamond, UC, Coins — proses otomatis 24/7, harga termurah se-Indonesia.
-          </p>
-          <div className="relative max-w-sm mx-auto">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input
-              placeholder="Cari game..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-12 h-12 text-base bg-muted/50 border-border/50 rounded-xl focus:border-primary"
-              data-testid="input-search-hero"
-            />
+      <section className="container mx-auto px-4 pt-20 pb-12 md:pt-28 md:pb-20">
+        <div className="flex flex-col md:flex-row items-center gap-12">
+          <div className="flex-1 text-center md:text-left space-y-5 opacity-0 animate-fade-in-up">
+            <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-foreground tracking-tight">
+              Top Up Game
+              <br />
+              <span className="gradient-text">Instant Delivery</span>
+            </h1>
+            <p className="text-muted-foreground text-base md:text-lg max-w-md leading-relaxed">
+              Diamond, UC, Coins — proses otomatis 24/7 dengan harga terbaik. 
+              Bayar pakai QRIS, Virtual Account, atau E-Wallet.
+            </p>
+            <div className="relative max-w-sm">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Input
+                placeholder="Cari game..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-12 h-12 text-base bg-muted/50 border-border/50 rounded-xl focus:border-primary"
+                data-testid="input-search-hero"
+              />
+            </div>
+          </div>
+
+          <div className="hidden md:block relative w-80 h-80 shrink-0 opacity-0 animate-fade-in stagger-2">
+            <div className="hero-blob absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="grid grid-cols-3 gap-3">
+                {[...Array(9)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="w-16 h-16 rounded-xl bg-card border border-border/60 flex items-center justify-center opacity-0 animate-scale-in"
+                    style={{ animationDelay: `${0.3 + i * 0.06}s` }}
+                  >
+                    <div className="w-2 h-2 rounded-full bg-primary/40" />
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -87,68 +113,66 @@ const Index = () => {
       <div className="container mx-auto px-4">
         <CategoryGrid />
 
-        <section className="py-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="font-display text-2xl font-bold">Game Populer</h2>
+        <section className="py-8 md:py-12 opacity-0 animate-fade-in-up stagger-3">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h2 className="font-display text-2xl md:text-3xl font-bold">Featured Games</h2>
+              <p className="text-muted-foreground text-sm mt-1">Pilih game favoritmu</p>
+            </div>
             {search && (
               <p className="text-sm text-muted-foreground">{filteredCategories.length} hasil untuk "{search}"</p>
             )}
           </div>
 
           {loadingCategories ? (
-            <div className="flex justify-center py-12">
+            <div className="flex justify-center py-16">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {filteredCategories.map((cat) => (
-                <Link
-                  key={cat.slug}
-                  to={`/game/${cat.slug}`}
-                  className="game-card group cursor-pointer block"
-                  data-testid={`card-game-${cat.slug}`}
-                >
-                  <div className="aspect-square overflow-hidden rounded-t-[calc(var(--radius)-1px)]">
-                    {cat.image_url ? (
-                      <img
-                        src={cat.image_url}
-                        alt={cat.name}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-muted/30 flex items-center justify-center">
-                        <span className="text-2xl font-bold text-muted-foreground/30">
-                          {cat.name.charAt(0)}
-                        </span>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+              {filteredCategories.map((cat, i) => {
+                const PlatformIcon = platformIcons[cat.platform ?? ""] || null;
+                return (
+                  <Link
+                    key={cat.slug}
+                    to={`/game/${cat.slug}`}
+                    className="game-card group cursor-pointer block opacity-0 animate-fade-in-up"
+                    style={{ animationDelay: `${0.4 + i * 0.05}s` }}
+                    data-testid={`card-game-${cat.slug}`}
+                  >
+                    <div className="aspect-[4/3] overflow-hidden rounded-t-[calc(var(--radius)-1px)]">
+                      {cat.image_url ? (
+                        <img
+                          src={cat.image_url}
+                          alt={cat.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-muted/30 flex items-center justify-center">
+                          <span className="text-3xl font-bold text-muted-foreground/20">
+                            {cat.name.charAt(0)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="font-display font-semibold text-sm leading-tight line-clamp-2">{cat.name}</p>
+                          {cat.platform && (
+                            <div className="flex items-center gap-1 mt-1.5">
+                              {PlatformIcon && <PlatformIcon className="h-3 w-3 text-muted-foreground" />}
+                              <span className="text-xs text-muted-foreground capitalize">{cat.platform}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    )}
-                  </div>
-                  <div className="p-3">
-                    <p className="font-display font-semibold text-xs leading-tight line-clamp-2">{cat.name}</p>
-                    {cat.platform && (
-                      <p className="text-xs text-muted-foreground mt-1">{cat.platform}</p>
-                    )}
-                  </div>
-                </Link>
-              ))}
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           )}
-        </section>
-
-        <section className="py-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { label: "Transaksi Berhasil", value: "2.5 Juta+" },
-              { label: "Pengguna Aktif", value: "500 Ribu+" },
-              { label: "Produk Tersedia", value: "1000+" },
-              { label: "Uptime Layanan", value: "99.9%" },
-            ].map((stat) => (
-              <div key={stat.label} className="stat-card">
-                <p className="font-display text-2xl font-bold text-primary">{stat.value}</p>
-                <p className="text-sm text-muted-foreground mt-1">{stat.label}</p>
-              </div>
-            ))}
-          </div>
         </section>
       </div>
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Search, Menu, X, Zap, User, LogOut, Shield, Sun, Moon } from "lucide-react";
+import { Search, Menu, X, Gem, User, LogOut, Shield, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -45,7 +45,7 @@ const Navbar = () => {
           <div className="flex h-16 items-center justify-between gap-4">
             <Link to="/" className="flex items-center gap-2 shrink-0" data-testid="link-logo">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-                <Zap className="h-5 w-5 text-primary-foreground" />
+                <Gem className="h-5 w-5 text-primary-foreground" />
               </div>
               <span className="font-display text-xl font-bold text-foreground">
                 RyuiiCharge

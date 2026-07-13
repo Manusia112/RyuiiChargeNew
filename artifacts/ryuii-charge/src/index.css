@@ -21,31 +21,20 @@
 
   --color-primary: hsl(var(--primary));
   --color-primary-foreground: hsl(var(--primary-foreground));
-  --color-primary-border: var(--primary-border);
 
   --color-secondary: hsl(var(--secondary));
   --color-secondary-foreground: hsl(var(--secondary-foreground));
-  --color-secondary-border: var(--secondary-border);
 
   --color-muted: hsl(var(--muted));
   --color-muted-foreground: hsl(var(--muted-foreground));
-  --color-muted-border: var(--muted-border);
 
   --color-accent: hsl(var(--accent));
   --color-accent-foreground: hsl(var(--accent-foreground));
-  --color-accent-border: var(--accent-border);
 
   --color-destructive: hsl(var(--destructive));
   --color-destructive-foreground: hsl(var(--destructive-foreground));
-  --color-destructive-border: var(--destructive-border);
 
   --color-success: hsl(var(--success));
-
-  --color-chart-1: hsl(var(--chart-1));
-  --color-chart-2: hsl(var(--chart-2));
-  --color-chart-3: hsl(var(--chart-3));
-  --color-chart-4: hsl(var(--chart-4));
-  --color-chart-5: hsl(var(--chart-5));
 
   --font-sans: var(--app-font-sans);
   --font-serif: var(--app-font-serif);
@@ -63,30 +52,22 @@
   --border: 240 4% 16%;
   --input: 240 4% 16%;
   --ring: 217 91% 60%;
-
   --card: 240 4% 10%;
   --card-foreground: 0 0% 93%;
   --card-border: 240 4% 14%;
-
   --popover: 240 4% 10%;
   --popover-foreground: 0 0% 93%;
   --popover-border: 240 4% 14%;
-
   --primary: 217 91% 60%;
   --primary-foreground: 0 0% 100%;
-
   --secondary: 240 4% 14%;
   --secondary-foreground: 0 0% 90%;
-
   --muted: 240 4% 12%;
   --muted-foreground: 240 4% 50%;
-
   --accent: 250 60% 55%;
   --accent-foreground: 0 0% 98%;
-
   --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 98%;
-
   --success: 142 71% 45%;
 }
 
@@ -96,34 +77,25 @@
   --border: 0 0% 88%;
   --input: 0 0% 88%;
   --ring: 217 91% 56%;
-
   --card: 0 0% 100%;
   --card-foreground: 240 6% 10%;
   --card-border: 0 0% 88%;
-
   --popover: 0 0% 100%;
   --popover-foreground: 240 6% 10%;
   --popover-border: 0 0% 88%;
-
   --primary: 217 91% 56%;
   --primary-foreground: 0 0% 100%;
-
   --secondary: 0 0% 92%;
   --secondary-foreground: 240 6% 10%;
-
   --muted: 0 0% 90%;
   --muted-foreground: 240 4% 46%;
-
   --accent: 250 60% 55%;
   --accent-foreground: 0 0% 100%;
-
   --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 98%;
-
   --success: 142 60% 40%;
 }
 
-/* fallback = dark */
 :root {
   --background: 240 6% 7%;
   --foreground: 0 0% 93%;
@@ -160,14 +132,6 @@
   --shadow-lg: 0px 6px 12px 0px rgba(0,0,0,0.35);
   --shadow-xl: 0px 8px 16px 0px rgba(0,0,0,0.4);
   --shadow-2xl: 0px 12px 24px 0px rgba(0,0,0,0.4);
-
-  --sidebar-primary-border: hsl(from hsl(var(--primary)) h s calc(l + 9) / alpha);
-  --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + 9) / alpha);
-  --primary-border: hsl(from hsl(var(--primary)) h s calc(l + 9) / alpha);
-  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + 9) / alpha);
-  --muted-border: hsl(from hsl(var(--muted)) h s calc(l + 9) / alpha);
-  --accent-border: hsl(from hsl(var(--accent)) h s calc(l + 9) / alpha);
-  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + 9) / alpha);
 }
 
 *,
@@ -181,17 +145,92 @@
   body { @apply font-sans antialiased bg-background text-foreground; }
 }
 
-@keyframes ticker {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+/* ── Entrance animations ── */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-16px); }
 }
 
 @layer utilities {
-  .animate-ticker {
-    animation: ticker 30s linear infinite;
-    will-change: transform;
+  .animate-fade-in { animation: fadeIn 0.6s ease forwards; }
+  .animate-fade-in-up { animation: fadeInUp 0.6s ease forwards; }
+  .animate-fade-in-down { animation: fadeInDown 0.4s ease forwards; }
+  .animate-scale-in { animation: scaleIn 0.5s ease forwards; }
+  .animate-slide-in-right { animation: slideInRight 0.6s ease forwards; }
+  .animate-float { animation: float 4s ease-in-out infinite; }
+
+  .stagger-1 { animation-delay: 0.1s; }
+  .stagger-2 { animation-delay: 0.2s; }
+  .stagger-3 { animation-delay: 0.3s; }
+  .stagger-4 { animation-delay: 0.4s; }
+  .stagger-5 { animation-delay: 0.5s; }
+  .stagger-6 { animation-delay: 0.6s; }
+
+  .opacity-0 { opacity: 0; }
+
+  /* ── Cards ── */
+
+  .game-card {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border) / 0.6);
+    border-radius: var(--radius);
+    transition: border-color 0.2s ease, transform 0.25s ease, box-shadow 0.25s ease;
   }
-  .animate-ticker:hover { animation-play-state: paused; }
+  .game-card:hover {
+    border-color: hsl(var(--primary) / 0.5);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  }
+
+  .stat-card {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border) / 0.6);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    text-align: center;
+  }
+
+  .denom-card {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border) / 0.6);
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  .denom-card:hover { border-color: hsl(var(--primary) / 0.5); }
+  .denom-card.selected {
+    border-color: hsl(var(--primary));
+    border-width: 1.5px;
+    background: hsl(var(--primary) / 0.08);
+  }
 
   .glass-card {
     background: hsl(var(--card));
@@ -211,41 +250,14 @@
 
   .font-display { font-family: var(--app-font-sans); }
 
-  .game-card {
-    background: hsl(var(--card));
-    border: 1px solid hsl(var(--border) / 0.6);
-    border-radius: var(--radius);
-    transition: border-color 0.2s ease, transform 0.2s ease;
-  }
-  .game-card:hover {
-    border-color: hsl(var(--primary) / 0.5);
-    transform: translateY(-2px);
-  }
-
-  .stat-card {
-    background: hsl(var(--card));
-    border: 1px solid hsl(var(--border) / 0.6);
-    border-radius: var(--radius);
-    padding: 1.25rem;
-    text-align: center;
-  }
-
-  .denom-card {
-    background: hsl(var(--card));
-    border: 1px solid hsl(var(--border) / 0.6);
-    border-radius: var(--radius);
-    padding: 0.75rem 1rem;
-    text-align: left;
-    cursor: pointer;
-    transition: border-color 0.2s ease;
-  }
-  .denom-card:hover {
-    border-color: hsl(var(--primary) / 0.5);
-  }
-  .denom-card.selected {
-    border-color: hsl(var(--primary));
-    border-width: 1.5px;
-    background: hsl(var(--primary) / 0.08);
+  /* ── Hero decorative blob ── */
+  .hero-blob {
+    width: 400px;
+    height: 400px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, hsl(217 91% 60% / 0.12), transparent 70%);
+    filter: blur(60px);
+    pointer-events: none;
   }
 
   .badge-pulse {
