@@ -449,7 +449,7 @@ const TransactionCard = ({ tx: initialTx, onLocalUpdate, onLocalRemove, showDele
           <Button
             onClick={handleResume}
             disabled={changing || cancelling}
-            className="w-full gradient-primary text-white gap-2"
+            className="w-full bg-primary text-primary-foreground gap-2"
             data-testid="button-resume-payment"
           >
             <CreditCard className="h-4 w-4" />
@@ -735,7 +735,7 @@ const CekTransaksi = () => {
             <Button
               onClick={handleGuestSearch}
               disabled={guestSearching || !invoiceId.trim()}
-              className="btn-neon gradient-primary text-white shrink-0"
+              className="bg-primary text-primary-foreground shrink-0"
               data-testid="button-search-transaction"
             >
               {guestSearching ? (

@@ -63,7 +63,6 @@ const Register = () => {
       return;
     }
 
-    // Verifikasi Turnstile (hanya jika site key dikonfigurasi DAN widget berhasil dimuat)
     if (TURNSTILE_SITE_KEY && !turnstileFailed) {
       if (!turnstileToken) {
         toast.error("Selesaikan verifikasi CAPTCHA terlebih dahulu");
@@ -88,7 +87,6 @@ const Register = () => {
           return;
         }
       } catch {
-        // Jika server verifikasi tidak bisa dihubungi, lanjutkan saja (graceful fallback)
       }
     }
 
@@ -114,7 +112,6 @@ const Register = () => {
     setGoogleLoading(false);
   };
 
-  // Tombol aktif jika: tidak pakai Turnstile, ATAU Turnstile gagal load (fallback), ATAU token sudah didapat
   const canSubmit = !!(name && email && password && !emailError && (!TURNSTILE_SITE_KEY || turnstileFailed || turnstileToken));
 
   return (
@@ -122,10 +119,10 @@ const Register = () => {
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center">
           <Link to="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl gradient-primary">
-              <Zap className="h-5 w-5 text-white" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
+              <Zap className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="font-display text-2xl font-bold neon-text text-foreground">RyuiiCharge</span>
+            <span className="font-display text-2xl font-bold text-foreground">RyuiiCharge</span>
           </Link>
           <h1 className="font-display text-2xl font-bold">Daftar Akun</h1>
           <p className="text-muted-foreground text-sm mt-1">Bergabung dan nikmati top up lebih mudah</p>
@@ -138,7 +135,7 @@ const Register = () => {
                 variant="outline"
                 onClick={handleGoogleRegister}
                 disabled={googleLoading}
-                className="w-full gap-3 border-border/50 hover:bg-muted/50"
+                className="w-full gap-3"
                 data-testid="button-google-register"
               >
                 {googleLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon />}
@@ -218,7 +215,6 @@ const Register = () => {
             </div>
           </div>
 
-          {/* Cloudflare Turnstile CAPTCHA — hanya muncul jika site key terkonfigurasi dan belum error */}
           {TURNSTILE_SITE_KEY && !turnstileFailed && (
             <div className="flex justify-center">
               <Turnstile
@@ -227,8 +223,6 @@ const Register = () => {
                 onSuccess={(token) => setTurnstileToken(token)}
                 onExpire={() => setTurnstileToken(null)}
                 onError={() => {
-                  // Jika Turnstile gagal load (misal domain belum terdaftar di Cloudflare),
-                  // aktifkan fallback diam-diam agar pengguna asli tetap bisa mendaftar
                   setTurnstileToken(null);
                   setTurnstileFailed(true);
                 }}
@@ -249,7 +243,7 @@ const Register = () => {
           <Button
             onClick={handleRegister}
             disabled={!canSubmit || loading}
-            className="w-full btn-neon gradient-primary text-white"
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
             data-testid="button-submit-register"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}

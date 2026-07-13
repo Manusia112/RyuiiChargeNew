@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-// ── Konten Syarat & Ketentuan ────────────────────────────────────────────────
 function TermsContent() {
   return (
     <div className="space-y-5 text-sm text-muted-foreground leading-relaxed">
@@ -89,7 +88,6 @@ function TermsContent() {
   );
 }
 
-// ── Konten Kebijakan Pengembalian ─────────────────────────────────────────────
 function RefundContent() {
   return (
     <div className="space-y-5 text-sm text-muted-foreground leading-relaxed">
@@ -174,14 +172,13 @@ function RefundContent() {
       </div>
 
       <div className="mt-6 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-xs text-amber-400">
-        ⚠️ Untuk mengajukan klaim refund, hubungi tim kami melalui WhatsApp
+        Untuk mengajukan klaim refund, hubungi tim kami melalui WhatsApp
         atau Telegram dengan menyertakan Invoice ID transaksi Anda.
       </div>
     </div>
   );
 }
 
-// ── Footer utama ─────────────────────────────────────────────────────────────
 const Footer = () => {
   const [openDialog, setOpenDialog] = useState<"terms" | "refund" | null>(null);
 
@@ -192,10 +189,10 @@ const Footer = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-primary">
-                  <Zap className="h-4 w-4 text-white" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+                  <Zap className="h-4 w-4 text-primary-foreground" />
                 </div>
-                <span className="font-display font-bold neon-text text-foreground">RyuiiCharge</span>
+                <span className="font-display font-bold text-foreground">RyuiiCharge</span>
               </div>
               <p className="text-sm text-muted-foreground">
                 Platform top up game terpercaya dengan proses otomatis dan harga termurah.
@@ -256,7 +253,7 @@ const Footer = () => {
                     className="hover:text-primary transition-colors cursor-pointer flex items-center gap-1.5 text-left"
                   >
                     <FileText className="h-3 w-3 shrink-0" />
-                    Syarat &amp; Ketentuan
+                    Syarat & Ketentuan
                   </button>
                 </li>
               </ul>
@@ -285,13 +282,12 @@ const Footer = () => {
         </div>
       </footer>
 
-      {/* Dialog Syarat & Ketentuan */}
       <Dialog open={openDialog === "terms"} onOpenChange={(o) => !o && setOpenDialog(null)}>
         <DialogContent className="max-w-lg w-full">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
               <FileText className="h-5 w-5 text-primary shrink-0" />
-              Syarat &amp; Ketentuan Layanan RyuiiCharge
+              Syarat & Ketentuan Layanan RyuiiCharge
             </DialogTitle>
           </DialogHeader>
           <ScrollArea className="max-h-[60vh] pr-2">
@@ -300,13 +296,12 @@ const Footer = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog Kebijakan Pengembalian */}
       <Dialog open={openDialog === "refund"} onOpenChange={(o) => !o && setOpenDialog(null)}>
         <DialogContent className="max-w-lg w-full">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base">
               <RefreshCcw className="h-5 w-5 text-primary shrink-0" />
-              Kebijakan Pengembalian Dana &amp; Pembatalan
+              Kebijakan Pengembalian Dana & Pembatalan
             </DialogTitle>
           </DialogHeader>
           <ScrollArea className="max-h-[60vh] pr-2">

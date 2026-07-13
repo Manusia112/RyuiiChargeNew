@@ -9,7 +9,7 @@ const NotFound = () => (
       <h1 className="font-display text-3xl font-bold">Halaman Tidak Ditemukan</h1>
       <p className="text-muted-foreground">Halaman yang kamu cari tidak ada atau sudah dipindahkan.</p>
       <Link to="/">
-        <Button className="gap-2 btn-neon gradient-primary text-white">
+        <Button className="gap-2 bg-primary text-primary-foreground">
           <Home className="h-4 w-4" />
           Kembali ke Beranda
         </Button>

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useSearch, useLocation } from "wouter";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import Navbar from "@/components/Navbar";
@@ -88,7 +88,6 @@ const Checkout = () => {
   const handleCreateInvoice = async () => {
     setCreating(true);
 
-    // Resolve session — get both user UUID and access token for auth binding
     let resolvedUserId: string | undefined;
     let accessToken: string | undefined;
     let resolvedEmail: string | undefined = user?.email;
@@ -102,7 +101,6 @@ const Checkout = () => {
           resolvedEmail  = session.user.email ?? resolvedEmail;
         }
       } catch {
-        // Non-critical — proceed as guest
       }
     }
 
@@ -115,13 +113,11 @@ const Checkout = () => {
       game_slug:          gameSlug,
       nickname:           nickname || undefined,
       customer_email:     resolvedEmail,
-      // Always send user_id + email in body as explicit binding
       ...(resolvedUserId ? { user_id: resolvedUserId } : {}),
     };
 
     console.log("[Checkout] Sending payload to create-order:", { ...payload, user_id: resolvedUserId ? "***" : "guest" });
 
-    // Build headers: include user JWT if available so backend can verify server-side
     const headers: Record<string, string> = {
       ...edgeHeaders(),
       ...(accessToken ? { "Authorization": `Bearer ${accessToken}` } : {}),
@@ -229,7 +225,7 @@ const Checkout = () => {
               {nickname && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Nickname</span>
-                  <span className="font-medium" style={{ color: "hsl(var(--success))" }}>✓ {nickname}</span>
+                  <span className="font-medium text-success">✓ {nickname}</span>
                 </div>
               )}
               <div className="flex justify-between border-t border-border/30 pt-2">
@@ -242,7 +238,7 @@ const Checkout = () => {
           <Button
             onClick={handleCreateInvoice}
             disabled={creating}
-            className="w-full btn-neon gradient-primary text-white h-12"
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12"
             data-testid="button-create-invoice"
           >
             {creating ? (

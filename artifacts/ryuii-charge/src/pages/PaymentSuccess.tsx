@@ -20,14 +20,12 @@ interface TransactionInfo {
   status: string;
 }
 
-// Normalize raw DB status (mixed English/Indonesian) into our UI bucket.
 function normalizeStatus(raw: string): PaymentStatus {
   const s = (raw ?? "").toLowerCase().trim();
   if (s === "berhasil" || s === "success" || s === "settlement" || s === "capture") return "success";
   if (s === "gagal" || s === "failed" || s === "canceled" || s === "cancelled" ||
       s === "expired" || s === "deny" || s === "expire") return "failed";
   if (s === "diproses" || s === "processing") return "processing";
-  // pending | menunggu | unknown → treat as pending (still waiting for payment)
   return "pending";
 }
 
@@ -46,8 +44,6 @@ const PaymentSuccess = () => {
   const [status, setStatus]   = useState<PaymentStatus>("loading");
   const [tx, setTx]           = useState<TransactionInfo | null>(null);
 
-  // Poll the DB until we reach a terminal status (success/failed) or until
-  // ~3 minutes elapse, so the UI reflects what the webhook just wrote.
   useEffect(() => {
     if (!orderId) {
       setStatus("unknown");
@@ -62,13 +58,13 @@ const PaymentSuccess = () => {
     let cancelled = false;
     let pollHandle: ReturnType<typeof setTimeout> | null = null;
     let attempts  = 0;
-    const MAX_ATTEMPTS = 36; // 36 * 5s = 3 minutes of polling
+    const MAX_ATTEMPTS = 36;
 
     const fetchOnce = async () => {
       try {
         const { data, error } = await supabase!
           .from("transactions")
-          .select("invoice_id, denomination_label, game_slug, amount, selling_price, total_price, payment_method, status")
+          .select("invoice_id, denomination_label, game_slug, amount, payment_method, status")
           .eq("invoice_id", orderId)
           .maybeSingle();
 
@@ -85,10 +81,8 @@ const PaymentSuccess = () => {
         const next = normalizeStatus(row.status);
         setStatus(next);
 
-        // Stop polling once we reach a terminal status
         if (next === "success" || next === "failed") return;
 
-        // Otherwise schedule another poll
         attempts += 1;
         if (attempts < MAX_ATTEMPTS) {
           pollHandle = setTimeout(fetchOnce, 5_000);
@@ -96,7 +90,6 @@ const PaymentSuccess = () => {
       } catch (err) {
         if (cancelled) return;
         console.error("[PaymentSuccess] Status fetch error:", err);
-        // Don't permanently fail — just retry a few more times.
         attempts += 1;
         if (attempts < MAX_ATTEMPTS) {
           pollHandle = setTimeout(fetchOnce, 5_000);
@@ -184,7 +177,7 @@ const PaymentSuccess = () => {
               </div>
             )}
             {(() => {
-              const amt = Number((tx as any).selling_price ?? tx.amount ?? (tx as any).total_price ?? 0);
+              const amt = Number(tx.amount ?? 0);
               return amt > 0 ? (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Total</span>
@@ -198,13 +191,13 @@ const PaymentSuccess = () => {
         {status !== "loading" && (
           <div className="flex flex-col gap-3">
             <Link to="/cek-transaksi">
-              <Button className="w-full gap-2 btn-neon gradient-primary text-white">
+              <Button className="w-full gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
                 <Search className="h-4 w-4" />
                 Cek Status Pesanan
               </Button>
             </Link>
             <Link to="/">
-              <Button variant="outline" className="w-full gap-2 border-border/50">
+              <Button variant="outline" className="w-full gap-2">
                 <Home className="h-4 w-4" />
                 Kembali ke Beranda
               </Button>

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Search, Menu, X, Zap, User, LogOut, Shield } from "lucide-react";
+import { Search, Menu, X, Zap, User, LogOut, Shield, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -14,6 +14,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/hooks/useAuth";
+import { useTheme } from "@/hooks/useTheme";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -21,6 +22,7 @@ const Navbar = () => {
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [location, navigate] = useLocation();
   const { user, isAdmin, signOut } = useAuth();
+  const { theme, toggle } = useTheme();
 
   const navLinks = [
     { to: "/", label: "Beranda" },
@@ -38,14 +40,14 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="sticky top-0 z-50 glass-card border-b border-border/50 backdrop-blur-xl" data-testid="navbar">
+      <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl" data-testid="navbar">
         <div className="container mx-auto px-4">
           <div className="flex h-16 items-center justify-between gap-4">
             <Link to="/" className="flex items-center gap-2 shrink-0" data-testid="link-logo">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-primary">
-                <Zap className="h-5 w-5 text-white" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
+                <Zap className="h-5 w-5 text-primary-foreground" />
               </div>
-              <span className="font-display text-xl font-bold neon-text text-foreground">
+              <span className="font-display text-xl font-bold text-foreground">
                 RyuiiCharge
               </span>
             </Link>
@@ -76,6 +78,25 @@ const Navbar = () => {
                   {link.label}
                 </Link>
               ))}
+
+              {/* Theme Toggle */}
+              <button
+                onClick={toggle}
+                className="relative flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border border-border/50 bg-muted/50 p-0.5 transition-colors duration-300 hover:border-primary/50"
+                aria-label="Toggle theme"
+              >
+                <span
+                  className={`flex h-5 w-5 items-center justify-center rounded-full bg-background shadow-sm transition-transform duration-300 ${
+                    theme === "dark" ? "translate-x-0" : "translate-x-5"
+                  }`}
+                >
+                  {theme === "dark" ? (
+                    <Moon className="h-3 w-3 text-blue-400" />
+                  ) : (
+                    <Sun className="h-3 w-3 text-amber-500" />
+                  )}
+                </span>
+              </button>
 
               {user ? (
                 <div className="flex items-center gap-2">
@@ -110,7 +131,7 @@ const Navbar = () => {
                     </Button>
                   </Link>
                   <Link to="/register">
-                    <Button size="sm" className="btn-neon gradient-primary text-white" data-testid="button-register">
+                    <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" data-testid="button-register">
                       Daftar
                     </Button>
                   </Link>
@@ -118,13 +139,32 @@ const Navbar = () => {
               )}
             </div>
 
-            <button
-              className="md:hidden p-2"
-              onClick={() => setIsOpen(!isOpen)}
-              data-testid="button-menu-toggle"
-            >
-              {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
+            <div className="flex items-center gap-2 md:hidden">
+              <button
+                onClick={toggle}
+                className="relative flex h-7 w-10 shrink-0 cursor-pointer items-center rounded-full border border-border/50 bg-muted/50 p-0.5 transition-colors duration-300"
+                aria-label="Toggle theme"
+              >
+                <span
+                  className={`flex h-5 w-5 items-center justify-center rounded-full bg-background shadow-sm transition-transform duration-300 ${
+                    theme === "dark" ? "translate-x-0" : "translate-x-4"
+                  }`}
+                >
+                  {theme === "dark" ? (
+                    <Moon className="h-2.5 w-2.5 text-blue-400" />
+                  ) : (
+                    <Sun className="h-2.5 w-2.5 text-amber-500" />
+                  )}
+                </span>
+              </button>
+              <button
+                className="p-2"
+                onClick={() => setIsOpen(!isOpen)}
+                data-testid="button-menu-toggle"
+              >
+                {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </button>
+            </div>
           </div>
 
           {isOpen && (
@@ -183,7 +223,7 @@ const Navbar = () => {
                     <Button variant="outline" size="sm" className="w-full">Masuk</Button>
                   </Link>
                   <Link to="/register" className="flex-1" onClick={() => setIsOpen(false)}>
-                    <Button size="sm" className="w-full gradient-primary text-white">Daftar</Button>
+                    <Button size="sm" className="w-full bg-primary text-primary-foreground">Daftar</Button>
                   </Link>
                 </div>
               )}
@@ -204,7 +244,7 @@ const Navbar = () => {
             <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleLogoutConfirm}
-              className="gradient-primary text-white"
+              className="bg-primary text-primary-foreground"
             >
               Ya, Keluar
             </AlertDialogAction>

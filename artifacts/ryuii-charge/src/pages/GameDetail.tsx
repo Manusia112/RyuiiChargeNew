@@ -25,7 +25,6 @@ interface CategoryInfo {
   input_template: InputTemplate | null;
 }
 
-// ── Server option lists ────────────────────────────────────────────────────
 const HOYO_SERVER_OPTIONS = [
   { label: "Asia",     value: "os_asia" },
   { label: "America",  value: "os_us"   },
@@ -41,7 +40,6 @@ const KURO_SERVER_OPTIONS = [
   { label: "SEA",     value: "sea"     },
 ];
 
-// ── Slug-based fallback when input_template is null on older categories ────
 function deriveInputTemplate(slug: string): InputTemplate {
   const s = slug.toLowerCase();
   if (s.includes("mobile-legends") || s.includes("mlbb")) return "MLBB";
@@ -67,16 +65,15 @@ const GameDetail = () => {
   const [dbDenominations, setDbDenominations] = useState<GameDenomination[] | null>(null);
   const [selectedDenom, setSelectedDenom] = useState<GameDenomination | null>(null);
 
-  // ── Input state per template ──────────────────────────────────────────────
-  const [userId,   setUserId]   = useState("");   // MLBB: User ID
-  const [zoneId,   setZoneId]   = useState("");   // MLBB: Zone ID
-  const [uid,      setUid]      = useState("");   // HOYOVERSE / KURO: UID
+  const [userId,   setUserId]   = useState("");
+  const [zoneId,   setZoneId]   = useState("");
+  const [uid,      setUid]      = useState("");
   const [hoyoServer, setHoyoServer] = useState(HOYO_SERVER_OPTIONS[0].value);
   const [kuroServer, setKuroServer] = useState(KURO_SERVER_OPTIONS[0].value);
-  const [playerId, setPlayerId] = useState("");   // SINGLE_ID
-  const [riotId,   setRiotId]   = useState("");   // RIOT: Riot ID
-  const [tagline,  setTagline]  = useState("");   // RIOT: Tagline
-  const [username, setUsername] = useState("");   // USERNAME
+  const [playerId, setPlayerId] = useState("");
+  const [riotId,   setRiotId]   = useState("");
+  const [tagline,  setTagline]  = useState("");
+  const [username, setUsername] = useState("");
 
   const [checkingNickname, setCheckingNickname] = useState(false);
   const [verifiedNickname, setVerifiedNickname] = useState<string | null>(null);
@@ -126,11 +123,9 @@ const GameDetail = () => {
     }
   }, [slug]);
 
-  // Resolved template: DB value takes priority, slug fallback for legacy entries
   const inputTemplate: InputTemplate =
     categoryInfo?.input_template ?? deriveInputTemplate(slug ?? "");
 
-  // ── Customer number concatenation (Digiflazz format) ─────────────────────
   const computeCustomerNo = (): string => {
     switch (inputTemplate) {
       case "MLBB":      return `${userId.trim()}${zoneId.trim()}`;
@@ -244,7 +239,6 @@ const GameDetail = () => {
     navigate(`/checkout?${params.toString()}`);
   };
 
-  // ── Input field renderer ──────────────────────────────────────────────────
   const renderInputFields = () => {
     switch (inputTemplate) {
 
@@ -383,7 +377,7 @@ const GameDetail = () => {
               />
             </div>
             <p className="text-xs text-amber-400">
-              ⚠️ Masukkan Username asli untuk login, BUKAN Display Name
+              Masukkan Username asli untuk login, BUKAN Display Name
             </p>
           </div>
         );
@@ -413,7 +407,7 @@ const GameDetail = () => {
         <Navbar />
         <div className="container mx-auto px-4 py-20 text-center">
           <h1 className="font-display text-3xl font-bold mb-4">Game Tidak Ditemukan</h1>
-          <Button variant="outline" onClick={() => navigate("/")} className="btn-neon">Kembali ke Beranda</Button>
+          <Button variant="outline" onClick={() => navigate("/")}>Kembali ke Beranda</Button>
         </div>
         <Footer />
       </div>
@@ -438,7 +432,7 @@ const GameDetail = () => {
         <Navbar />
         <div className="container mx-auto px-4 py-20 text-center">
           <h1 className="font-display text-3xl font-bold mb-4">Game Tidak Ditemukan</h1>
-          <Button variant="outline" onClick={() => navigate("/")} className="btn-neon">Kembali ke Beranda</Button>
+          <Button variant="outline" onClick={() => navigate("/")}>Kembali ke Beranda</Button>
         </div>
         <Footer />
       </div>
@@ -455,7 +449,7 @@ const GameDetail = () => {
         ) : (
           <div className="w-full h-full bg-muted/30" />
         )}
-        <div className="absolute inset-0" style={{ background: "linear-gradient(to top, hsl(var(--background)), hsl(var(--background) / 0.6), transparent)" }} />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
       </div>
 
       <div className="container mx-auto px-4 -mt-12 relative z-10">
@@ -525,9 +519,9 @@ const GameDetail = () => {
 
                 {verifiedNickname && (
                   <div className="flex items-center gap-2 text-sm" data-testid="text-nickname-found">
-                    <CheckCircle className="h-4 w-4 shrink-0" style={{ color: "hsl(var(--success))" }} />
+                    <CheckCircle className="h-4 w-4 shrink-0 text-success" />
                     <span className="text-muted-foreground">Nickname:</span>
-                    <span className="font-semibold" style={{ color: "hsl(var(--success))" }}>{verifiedNickname}</span>
+                    <span className="font-semibold text-success">{verifiedNickname}</span>
                   </div>
                 )}
 
@@ -568,7 +562,7 @@ const GameDetail = () => {
                 {verifiedNickname && (
                   <div className="flex justify-between border-t border-border/30 pt-2">
                     <span className="text-muted-foreground">Akun</span>
-                    <span className="font-semibold text-xs text-right" style={{ color: "hsl(var(--success))" }}>
+                    <span className="font-semibold text-xs text-right text-success">
                       ✓ {verifiedNickname}
                     </span>
                   </div>
@@ -578,7 +572,7 @@ const GameDetail = () => {
               <Button
                 onClick={handleCheckout}
                 disabled={!canCheckout}
-                className="w-full btn-neon gradient-primary text-white gap-2"
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 gap-2"
                 data-testid="button-checkout"
               >
                 <ShoppingCart className="h-4 w-4" />
@@ -594,7 +588,7 @@ const GameDetail = () => {
               <div className="border-t border-border/30 pt-3 space-y-2">
                 {["Proses Otomatis", "Harga Termurah", "100% Aman"].map((f) => (
                   <div key={f} className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "hsl(var(--success))" }}></span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-success" />
                     {f}
                   </div>
                 ))}

@@ -733,7 +733,7 @@ const Admin = () => {
                     setNewProduct({ ...EMPTY_NEW_PRODUCT, game_category: defaultGame });
                     setShowAddModal(true);
                   }}
-                  className="gap-2 btn-neon gradient-primary text-white"
+                  className="gap-2 bg-primary text-primary-foreground"
                   data-testid="button-add-product"
                 >
                   <Plus className="h-4 w-4" />
@@ -983,7 +983,7 @@ const Admin = () => {
                           size="sm"
                           onClick={() => handleSaveProduct(product)}
                           disabled={product.saving}
-                          className="gap-2 btn-neon gradient-primary text-white"
+                          className="gap-2 bg-primary text-primary-foreground"
                           data-testid={`button-save-product-${product.slug}`}
                         >
                           {product.saving ? (
@@ -1037,7 +1037,7 @@ const Admin = () => {
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
                   </div>
                   <Button
-                    className="btn-neon gradient-primary text-white"
+                    className="bg-primary text-primary-foreground"
                     data-testid="button-apply-global-markup"
                     onClick={() => {
                       const val = (document.getElementById("global-markup") as HTMLInputElement)?.value;
@@ -1099,7 +1099,7 @@ const Admin = () => {
               ))}
             </div>
             <Button
-              className="btn-neon gradient-primary text-white"
+              className="bg-primary text-primary-foreground"
               data-testid="button-save-markup"
               onClick={() => {
                 products.forEach((p) => {
@@ -1249,7 +1249,7 @@ const Admin = () => {
                 Batal
               </Button>
               <Button
-                className="flex-1 btn-neon gradient-primary text-white gap-2"
+                className="flex-1 bg-primary text-primary-foreground gap-2"
                 onClick={handleAddCategory}
                 disabled={newCategory.saving || !newCategory.name || !newCategory.slug}
               >
@@ -1496,7 +1496,7 @@ const Admin = () => {
                 Batal
               </Button>
               <Button
-                className="flex-1 btn-neon gradient-primary text-white gap-2"
+                className="flex-1 bg-primary text-primary-foreground gap-2"
                 onClick={handleAddProduct}
                 disabled={newProduct.saving || !newProduct.name || !newProduct.slug}
               >

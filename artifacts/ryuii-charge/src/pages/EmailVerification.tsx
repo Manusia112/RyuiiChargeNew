@@ -34,10 +34,10 @@ const EmailVerification = () => {
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center">
           <Link to="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl gradient-primary">
-              <Zap className="h-5 w-5 text-white" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
+              <Zap className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="font-display text-2xl font-bold neon-text text-foreground">RyuiiCharge</span>
+            <span className="font-display text-2xl font-bold text-foreground">RyuiiCharge</span>
           </Link>
         </div>
 
@@ -63,8 +63,7 @@ const EmailVerification = () => {
 
           <div className="space-y-3">
             {sent ? (
-              <div className="flex items-center justify-center gap-2 text-sm py-2"
-                style={{ color: "hsl(var(--success))" }}>
+              <div className="flex items-center justify-center gap-2 text-sm py-2 text-success">
                 <CheckCircle className="h-4 w-4" />
                 Email verifikasi terkirim!
               </div>

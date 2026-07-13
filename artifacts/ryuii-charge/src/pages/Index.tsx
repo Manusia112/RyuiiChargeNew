@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2, Zap } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -61,16 +61,16 @@ const Index = () => {
       <Navbar />
 
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, hsl(217 91% 60% / 0.08), transparent)" }} />
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent" />
         <div className="container mx-auto px-4 py-16 md:py-24 relative">
           <div className="max-w-2xl mx-auto text-center space-y-6">
-            <div className="inline-flex items-center gap-2 glass-card px-4 py-1.5 text-sm text-primary mb-2">
-              <span className="w-2 h-2 rounded-full bg-success animate-pulse" style={{ backgroundColor: "hsl(var(--success))" }}></span>
+            <div className="inline-flex items-center gap-2 glass-card px-4 py-1.5 text-sm text-primary">
+              <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
               Proses Otomatis 24/7
             </div>
             <h1 className="font-display text-4xl md:text-5xl font-bold leading-tight text-foreground">
               Top Up Game{" "}
-              <span className="bg-clip-text text-transparent gradient-primary">Instan & Murah</span>
+              <span className="gradient-text">Instan & Murah</span>
             </h1>
             <p className="text-muted-foreground text-lg">
               Proses otomatis, harga termurah, dan terpercaya. Diamond, UC, Coins, dan masih banyak lagi!

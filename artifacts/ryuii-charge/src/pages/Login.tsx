@@ -89,10 +89,10 @@ const Login = () => {
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center">
           <Link to="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl gradient-primary">
-              <Zap className="h-5 w-5 text-white" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
+              <Zap className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="font-display text-2xl font-bold neon-text text-foreground">RyuiiCharge</span>
+            <span className="font-display text-2xl font-bold text-foreground">RyuiiCharge</span>
           </Link>
           <h1 className="font-display text-2xl font-bold">Masuk</h1>
           <p className="text-muted-foreground text-sm mt-1">Masuk untuk melihat riwayat pesanan</p>
@@ -138,7 +138,7 @@ const Login = () => {
                 variant="outline"
                 onClick={handleGoogleLogin}
                 disabled={googleLoading}
-                className="w-full gap-3 border-border/50 hover:bg-muted/50"
+                className="w-full gap-3"
                 data-testid="button-google-login"
               >
                 {googleLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon />}
@@ -204,7 +204,7 @@ const Login = () => {
           <Button
             onClick={handleLogin}
             disabled={!email || !password || !!emailError || loading}
-            className="w-full btn-neon gradient-primary text-white"
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
             data-testid="button-submit-login"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}

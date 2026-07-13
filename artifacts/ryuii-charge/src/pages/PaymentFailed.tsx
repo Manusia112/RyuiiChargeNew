@@ -17,13 +17,13 @@ const PaymentFailed = () => (
       <p className="text-muted-foreground mb-8">Terjadi kesalahan saat memproses pembayaran kamu. Silakan coba lagi atau gunakan metode pembayaran lain.</p>
       <div className="flex flex-col gap-3">
         <Link to="/">
-          <Button className="w-full gap-2 btn-neon gradient-primary text-white">
+          <Button className="w-full gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
             <RefreshCw className="h-4 w-4" />
             Coba Lagi
           </Button>
         </Link>
         <Link to="/">
-          <Button variant="outline" className="w-full gap-2 border-border/50">
+          <Button variant="outline" className="w-full gap-2">
             <Home className="h-4 w-4" />
             Kembali ke Beranda
           </Button>
