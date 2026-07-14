@@ -1075,11 +1075,10 @@ const Admin = () => {
                                   className="pl-8 bg-muted/50 border-border/50"
                                   data-testid={`input-fixed-price-${product.slug}`}
                                 />
-            </div>
-          </div>
-        )}
-
-      </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
 
                       <div className="flex md:flex-col justify-end items-end gap-2 shrink-0">
