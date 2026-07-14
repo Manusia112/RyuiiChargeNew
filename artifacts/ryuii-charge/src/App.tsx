@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Router as WouterRouter, Route, Switch } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
@@ -6,40 +7,70 @@ import { Toaster as Sonner } from "sonner";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/useTheme";
 import AdminGuard from "@/components/AdminGuard";
-import Index from "@/pages/Index";
-import GameDetail from "@/pages/GameDetail";
-import Checkout from "@/pages/Checkout";
-import CekTransaksi from "@/pages/CekTransaksi";
-import Login from "@/pages/Login";
-import Register from "@/pages/Register";
-import EmailVerification from "@/pages/EmailVerification";
-import Admin from "@/pages/Admin";
-import PaymentSuccess from "@/pages/PaymentSuccess";
-import PaymentFailed from "@/pages/PaymentFailed";
-import NotFound from "@/pages/NotFound";
+import { Loader2 } from "lucide-react";
+
+const Index = lazy(() => import("@/pages/Index"));
+const GameDetail = lazy(() => import("@/pages/GameDetail"));
+const Checkout = lazy(() => import("@/pages/Checkout"));
+const CekTransaksi = lazy(() => import("@/pages/CekTransaksi"));
+const Login = lazy(() => import("@/pages/Login"));
+const Register = lazy(() => import("@/pages/Register"));
+const EmailVerification = lazy(() => import("@/pages/EmailVerification"));
+const Admin = lazy(() => import("@/pages/Admin"));
+const PaymentSuccess = lazy(() => import("@/pages/PaymentSuccess"));
+const PaymentFailed = lazy(() => import("@/pages/PaymentFailed"));
+const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const queryClient = new QueryClient();
+
+function PageLoader() {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  );
+}
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Index} />
-      <Route path="/game/:slug" component={GameDetail} />
-      <Route path="/checkout" component={Checkout} />
-      <Route path="/cek-transaksi" component={CekTransaksi} />
-      <Route path="/login" component={Login} />
-      <Route path="/register" component={Register} />
-      <Route path="/verify-email" component={EmailVerification} />
-      <Route path="/payment/success" component={PaymentSuccess} />
-      <Route path="/payment/failed" component={PaymentFailed} />
+      <Route path="/">
+        {() => <Suspense fallback={<PageLoader />}><Index /></Suspense>}
+      </Route>
+      <Route path="/game/:slug">
+        {() => <Suspense fallback={<PageLoader />}><GameDetail /></Suspense>}
+      </Route>
+      <Route path="/checkout">
+        {() => <Suspense fallback={<PageLoader />}><Checkout /></Suspense>}
+      </Route>
+      <Route path="/cek-transaksi">
+        {() => <Suspense fallback={<PageLoader />}><CekTransaksi /></Suspense>}
+      </Route>
+      <Route path="/login">
+        {() => <Suspense fallback={<PageLoader />}><Login /></Suspense>}
+      </Route>
+      <Route path="/register">
+        {() => <Suspense fallback={<PageLoader />}><Register /></Suspense>}
+      </Route>
+      <Route path="/verify-email">
+        {() => <Suspense fallback={<PageLoader />}><EmailVerification /></Suspense>}
+      </Route>
+      <Route path="/payment/success">
+        {() => <Suspense fallback={<PageLoader />}><PaymentSuccess /></Suspense>}
+      </Route>
+      <Route path="/payment/failed">
+        {() => <Suspense fallback={<PageLoader />}><PaymentFailed /></Suspense>}
+      </Route>
       <Route path="/admin">
         {() => (
-          <AdminGuard>
-            <Admin />
-          </AdminGuard>
+          <Suspense fallback={<PageLoader />}>
+            <AdminGuard><Admin /></AdminGuard>
+          </Suspense>
         )}
       </Route>
-      <Route component={NotFound} />
+      <Route>
+        {() => <Suspense fallback={<PageLoader />}><NotFound /></Suspense>}
+      </Route>
     </Switch>
   );
 }

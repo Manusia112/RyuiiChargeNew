@@ -86,7 +86,7 @@ const Navbar = () => {
               <button
                 onClick={toggle}
                 className="relative flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border border-border/50 bg-muted/50 p-0.5 transition-colors duration-300 hover:border-primary/50"
-                aria-label="Toggle theme"
+                aria-label={theme === "dark" ? "Beralih ke mode terang" : "Beralih ke mode gelap"}
               >
                 <span
                   className={`flex h-5 w-5 items-center justify-center rounded-full bg-background shadow-sm transition-transform duration-300 ${
@@ -146,7 +146,7 @@ const Navbar = () => {
               <button
                 onClick={toggle}
                 className="relative flex h-7 w-10 shrink-0 cursor-pointer items-center rounded-full border border-border/50 bg-muted/50 p-0.5 transition-colors duration-300"
-                aria-label="Toggle theme"
+                aria-label={theme === "dark" ? "Beralih ke mode terang" : "Beralih ke mode gelap"}
               >
                 <span
                   className={`flex h-5 w-5 items-center justify-center rounded-full bg-background shadow-sm transition-transform duration-300 ${
@@ -163,6 +163,7 @@ const Navbar = () => {
               <button
                 className="p-2"
                 onClick={() => setIsOpen(!isOpen)}
+                aria-label={isOpen ? "Tutup menu" : "Buka menu"}
                 data-testid="button-menu-toggle"
               >
                 {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}

@@ -143,11 +143,15 @@ const Index = () => {
                     <div className="aspect-[4/3] overflow-hidden rounded-t-[calc(var(--radius)-1px)]">
                       {cat.image_url ? (
                         <img
-                          src={cat.image_url}
+                          src={`${cat.image_url}&w=400&h=300&fit=crop`}
+                          srcSet={`${cat.image_url}&w=200&h=150&fit=crop 200w, ${cat.image_url}&w=400&h=300&fit=crop 400w, ${cat.image_url}&w=800&h=600&fit=crop 800w`}
+                          sizes="(max-width: 640px) 200px, (max-width: 1024px) 400px, 300px"
                           alt={cat.name}
-                          loading="lazy"
+                          loading={i < 4 ? "eager" : "lazy"}
+                          fetchpriority={i < 2 ? "high" : "low"}
                           width="400"
                           height="300"
+                          decoding="async"
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                       ) : (

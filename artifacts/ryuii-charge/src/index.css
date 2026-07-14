@@ -149,6 +149,16 @@
 @layer base {
   * { @apply border-border; }
   body { @apply font-sans antialiased bg-background text-foreground; }
+
+  /* Touch targets: minimum 44px for interactive elements on mobile */
+  button, a, [role="button"], input, select, textarea {
+    @apply min-h-[44px] md:min-h-0;
+  }
+
+  /* Restore small variants for buttons that should be small */
+  button[class*="sm"], a[class*="sm"], [role="button"][class*="sm"] {
+    @apply min-h-0;
+  }
 }
 
 /* ── Entrance animations ── */

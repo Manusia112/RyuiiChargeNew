@@ -42,17 +42,26 @@ async function callManageTransaction(payload: Record<string, unknown>): Promise<
 declare global {
   interface Window {
     snap: {
-      pay: (
-        token: string,
-        options?: {
-          onSuccess?: (result: unknown) => void;
-          onPending?: (result: unknown) => void;
-          onError?: (result: unknown) => void;
-          onClose?: () => void;
-        },
-      ) => void;
+      pay: (token: string, options?: {
+        onSuccess?: (result: unknown) => void;
+        onPending?: (result: unknown) => void;
+        onError?: (result: unknown) => void;
+        onClose?: () => void;
+      }) => void;
     };
   }
+}
+
+function loadSnapScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if ((window as any).snap) return resolve();
+    const s = document.createElement("script");
+    s.src = "https://app.midtrans.com/snap/snap.js";
+    s.setAttribute("data-client-key", "Mid-client-CTr7eMRrCX_cG5tg");
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error("Gagal memuat Midtrans Snap"));
+    document.head.appendChild(s);
+  });
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -231,21 +240,26 @@ const TransactionCard = ({ tx: initialTx, onLocalUpdate, onLocalRemove, showDele
   }, [expired, tx.id, onLocalUpdate]);
 
   // ── Lanjutkan: re-open existing token ─────────────────────────────────────
-  const handleResume = () => {
+  const handleResume = async () => {
     if (!activeToken) return;
     console.log("[CekTransaksi] Resuming payment:", tx.invoice_id);
-    window.snap.pay(activeToken, {
-      onSuccess: () => {
-        toast.success("Pembayaran berhasil! Memperbarui status...");
-        setTimeout(() => window.location.reload(), 1500);
-      },
-      onPending: () => {
-        toast.info("Pembayaran sedang diproses.");
-        setTimeout(() => window.location.reload(), 1500);
-      },
-      onError: () => toast.error("Pembayaran gagal. Silakan coba lagi."),
-      onClose: () => toast.info("Popup ditutup."),
-    });
+    try {
+      await loadSnapScript();
+      window.snap.pay(activeToken, {
+        onSuccess: () => {
+          toast.success("Pembayaran berhasil! Memperbarui status...");
+          setTimeout(() => window.location.reload(), 1500);
+        },
+        onPending: () => {
+          toast.info("Pembayaran sedang diproses.");
+          setTimeout(() => window.location.reload(), 1500);
+        },
+        onError: () => toast.error("Pembayaran gagal. Silakan coba lagi."),
+        onClose: () => toast.info("Popup ditutup."),
+      });
+    } catch {
+      toast.error("Gagal memuat pembayaran. Coba lagi.");
+    }
   };
 
   // ── Ubah Metode: regenerate token, OVERWRITE existing row (no duplicate) ─
@@ -336,6 +350,7 @@ const TransactionCard = ({ tx: initialTx, onLocalUpdate, onLocalRemove, showDele
 
       console.log("[CekTransaksi] New token ready — opening Snap:", result.newInvoiceId);
 
+      await loadSnapScript();
       window.snap.pay(result.token, {
         onSuccess: () => {
           toast.success("Pembayaran berhasil! Memperbarui status...");

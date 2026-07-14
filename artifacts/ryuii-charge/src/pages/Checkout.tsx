@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearch, useLocation } from "wouter";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,18 +11,27 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase, supabaseConfigured } from "@/lib/supabase";
 import { API, edgeHeaders } from "@/lib/api";
 
+function loadSnapScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if ((window as any).snap) return resolve();
+    const s = document.createElement("script");
+    s.src = "https://app.midtrans.com/snap/snap.js";
+    s.setAttribute("data-client-key", "Mid-client-CTr7eMRrCX_cG5tg");
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error("Gagal memuat Midtrans Snap"));
+    document.head.appendChild(s);
+  });
+}
+
 declare global {
   interface Window {
     snap: {
-      pay: (
-        token: string,
-        options?: {
-          onSuccess?: (result: unknown) => void;
-          onPending?: (result: unknown) => void;
-          onError?: (result: unknown) => void;
-          onClose?: () => void;
-        },
-      ) => void;
+      pay: (token: string, options?: {
+        onSuccess?: (result: unknown) => void;
+        onPending?: (result: unknown) => void;
+        onError?: (result: unknown) => void;
+        onClose?: () => void;
+      }) => void;
     };
   }
 }
@@ -158,22 +167,23 @@ const Checkout = () => {
           ? `/payment/failed?order_id=${encodeURIComponent(orderId)}`
           : "/payment/failed";
         console.log("[Checkout] Opening Midtrans Snap popup for invoice:", orderId);
-        window.snap.pay(result.token, {
-          onSuccess: () => {
-            navigate(statusUrl);
-          },
-          onPending: () => {
-            toast.info("Pembayaran sedang diproses. Cek status di halaman transaksi.");
-            navigate(statusUrl);
-          },
-          onError: () => {
-            toast.error("Pembayaran gagal. Silakan coba lagi.");
-            navigate(failedUrl);
-          },
-          onClose: () => {
-            toast.info("Popup ditutup. Klik Bayar Sekarang untuk melanjutkan.");
-          },
-        });
+        try {
+          await loadSnapScript();
+          window.snap.pay(result.token, {
+            onSuccess: () => navigate(statusUrl),
+            onPending: () => {
+              toast.info("Pembayaran sedang diproses. Cek status di halaman transaksi.");
+              navigate(statusUrl);
+            },
+            onError: () => {
+              toast.error("Pembayaran gagal. Silakan coba lagi.");
+              navigate(failedUrl);
+            },
+            onClose: () => toast.info("Popup ditutup. Klik Bayar Sekarang untuk melanjutkan."),
+          });
+        } catch {
+          toast.error("Gagal memuat pembayaran. Coba lagi.");
+        }
         return;
       }
 
