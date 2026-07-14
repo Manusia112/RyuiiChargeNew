@@ -1,4 +1,14 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createHash } from "node:crypto";
+
+function md5(input: string): string {
+  return createHash("md5").update(input).digest("hex");
+}
+
+function toSlug(s: string): string {
+  return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
 
 const CORS = {
   "Access-Control-Allow-Origin":  "*",
@@ -141,6 +151,109 @@ Deno.serve(async (req: Request) => {
 
       console.log(`[manage-transaction] DELETE_ALL ok: ${data?.length ?? 0} rows (user=${userId})`);
       return json({ success: true, action: "delete_all", deleted: data?.length ?? 0 });
+    }
+
+    // ── SYNC PRODUCTS from Digiflazz ───────────────────────────────────
+    if (action === "sync_products") {
+      const digiflazzUsername = Deno.env.get("DIGIFLAZZ_USERNAME") ?? "";
+      const digiflazzApiKey   = Deno.env.get("DIGIFLAZZ_API_KEY")   ?? "";
+
+      if (!digiflazzUsername || !digiflazzApiKey) {
+        return json({ success: false, message: "Digiflazz credentials not configured" }, 500);
+      }
+
+      console.log("[manage-transaction:sync_products] Start");
+
+      const sign = md5(digiflazzUsername + digiflazzApiKey + "pricelist");
+      const pricelistResp = await fetch("https://api.digiflazz.com/v1/price-list", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: digiflazzUsername, sign }),
+      });
+
+      const pricelistJson = await pricelistResp.json();
+      const pricelist = pricelistJson.data;
+
+      if (!Array.isArray(pricelist)) {
+        return json({ success: false, message: "Digiflazz API error", detail: pricelistJson }, 502);
+      }
+
+      const { data: categories } = await adminClient
+        .from("categories")
+        .select("id, slug, name, digiflazz_category, markup_percent, platform")
+        .not("digiflazz_category", "is", null);
+
+      const mappedCategories = (categories ?? []).filter(
+        (c: any) => c.digiflazz_category?.trim()
+      );
+
+      const { data: existingProducts } = await adminClient
+        .from("products")
+        .select("id, digiflazz_sku, cost_price, selling_price");
+
+      const existingBySku = new Map<string, any>();
+      for (const p of existingProducts ?? []) {
+        if (p.digiflazz_sku) existingBySku.set(p.digiflazz_sku, p);
+      }
+
+      let created = 0;
+      let updated = 0;
+      let unchanged = 0;
+      const errors: string[] = [];
+      const processedSkus = new Set<string>();
+
+      for (const cat of mappedCategories) {
+        const markupPct = Number(cat.markup_percent ?? 20);
+        const digiCategory = cat.digiflazz_category.trim();
+
+        const digiItems = pricelist.filter(
+          (item: any) => item.brand?.toLowerCase() === digiCategory.toLowerCase()
+        );
+
+        for (const item of digiItems) {
+          const sku: string = item.buyer_sku_code;
+          const costPrice: number = item.price;
+          const digiName: string = item.product_name;
+          const sellingPrice = Math.ceil(costPrice * (1 + markupPct / 100) / 100) * 100;
+
+          processedSkus.add(sku);
+          const existing = existingBySku.get(sku);
+
+          if (existing) {
+            if (existing.cost_price !== costPrice || existing.selling_price !== sellingPrice) {
+              const { error: updateErr } = await adminClient
+                .from("products")
+                .update({ cost_price: costPrice, selling_price: sellingPrice })
+                .eq("id", existing.id);
+
+              if (updateErr) errors.push(`Update ${sku}: ${updateErr.message}`);
+              else updated++;
+            } else {
+              unchanged++;
+            }
+          } else {
+            const baseSlug = `${cat.slug}-${toSlug(digiName)}`;
+            const { error: insertErr } = await adminClient
+              .from("products")
+              .insert({
+                name: digiName, slug: baseSlug, category: "game",
+                game_category: cat.slug, platform: cat.platform ?? "Mobile",
+                pricing_mode: "automatic", cost_price: costPrice,
+                markup_percent: markupPct, selling_price: sellingPrice,
+                digiflazz_sku: sku, is_active: true,
+              });
+
+            if (insertErr) errors.push(`Insert ${sku}: ${insertErr.message}`);
+            else created++;
+          }
+        }
+      }
+
+      return json({
+        success: true, created, updated, unchanged,
+        errors: errors.length > 0 ? errors : undefined,
+        total: processedSkus.size,
+      });
     }
 
     return json({ success: false, message: `Action "${action}" tidak dikenal` }, 400);

@@ -610,16 +610,17 @@ const Admin = () => {
     setSyncResult(null);
     try {
       const headers = await authedEdgeHeaders();
-      const res = await fetch(API.syncProducts, {
+      const res = await fetch(API.manageTransaction, {
         method: "POST",
         headers,
+        body: JSON.stringify({ action: "sync_products" }),
       });
-      const data = await res.json() as SyncResult & { error?: string };
-      if (!res.ok || data.error) {
-        toast.error(data.error ?? "Sync gagal");
+      const json = await res.json() as Record<string, unknown>;
+      if (!res.ok || json.error) {
+        toast.error((json.error ?? json.message ?? "Sync gagal") as string);
         return;
       }
-      setSyncResult(data);
+      setSyncResult(json as unknown as SyncResult);
       toast.success(`Sync selesai: ${data.created} baru, ${data.updated} update`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Sync gagal");
