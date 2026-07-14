@@ -189,7 +189,7 @@ const Checkout = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
+      <div id="main-content" className="container mx-auto px-4 py-8 max-w-2xl">
         <button
           onClick={() => window.history.back()}
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"

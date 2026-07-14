@@ -759,7 +759,7 @@ const Admin = () => {
                     <div key={cat.id} className="game-card p-3 relative group">
                       <div className="aspect-square rounded-lg overflow-hidden bg-muted/40 mb-2">
                         {cat.image_url ? (
-                          <img src={cat.image_url} alt={cat.name} className="w-full h-full object-cover" />
+                          <img src={cat.image_url} alt={cat.name} loading="lazy" width="200" height="200" className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
                             <ImageIcon className="h-6 w-6 text-muted-foreground/40" />

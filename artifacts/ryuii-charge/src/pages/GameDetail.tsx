@@ -443,9 +443,9 @@ const GameDetail = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      <div className="relative h-40 md:h-56 overflow-hidden">
+      <div id="main-content" className="relative h-40 md:h-56 overflow-hidden">
         {gameBanner ? (
-          <img src={gameBanner} alt={gameName} className="w-full h-full object-cover" />
+          <img src={gameBanner} alt={gameName} loading="lazy" width="800" height="300" className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full bg-muted/30" />
         )}

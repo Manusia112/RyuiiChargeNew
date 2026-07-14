@@ -40,6 +40,9 @@ const Navbar = () => {
 
   return (
     <>
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-lg focus:text-sm focus:outline-none">
+        Langsung ke konten utama
+      </a>
       <nav className="sticky top-0 z-50 border-b border-border/60 bg-background" data-testid="navbar">
         <div className="container mx-auto px-4">
           <div className="flex h-16 items-center justify-between gap-4">

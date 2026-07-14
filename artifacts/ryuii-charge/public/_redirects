@@ -1,1 +1,10 @@
+/robots.txt /robots.txt 200
+/sitemap.xml /sitemap.xml 200
+/_headers /_headers 200
+/_redirects /_redirects 200
+/favicon.ico /favicon.ico 200
+/favicon.svg /favicon.svg 200
+/apple-touch-icon.png /apple-touch-icon.png 200
+/opengraph.jpg /opengraph.jpg 200
+/assets/* /assets/:splat 200
 /* /index.html 200

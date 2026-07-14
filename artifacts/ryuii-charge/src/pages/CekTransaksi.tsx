@@ -643,7 +643,7 @@ const CekTransaksi = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="container mx-auto px-4 py-12 max-w-2xl">
+      <div id="main-content" className="container mx-auto px-4 py-12 max-w-2xl">
 
         <div className="text-center mb-8">
           <h1 className="font-display text-3xl font-bold">Cek Transaksi</h1>

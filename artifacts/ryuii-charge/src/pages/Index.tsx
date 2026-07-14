@@ -65,7 +65,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      <section className="container mx-auto px-4 pt-20 pb-12 md:pt-28 md:pb-20">
+      <section id="main-content" className="container mx-auto px-4 pt-20 pb-12 md:pt-28 md:pb-20">
         <div className="flex flex-col md:flex-row items-center gap-12">
           <div className="flex-1 text-center md:text-left space-y-5 opacity-0 animate-fade-in-up">
             <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-foreground tracking-tight">
@@ -145,6 +145,9 @@ const Index = () => {
                         <img
                           src={cat.image_url}
                           alt={cat.name}
+                          loading="lazy"
+                          width="400"
+                          height="300"
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                       ) : (
