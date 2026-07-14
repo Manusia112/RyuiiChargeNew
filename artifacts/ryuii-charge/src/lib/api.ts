@@ -10,6 +10,7 @@ export const API = {
   repay:             `${SUPA}/repay`,
   adminTransactions: `${SUPA}/admin-transactions`,
   manageTransaction: `${SUPA}/manage-transaction`,
+  syncProducts:       `${SUPA}/sync-products`,
 };
 
 /** Headers wajib untuk semua request ke Supabase Edge Functions */

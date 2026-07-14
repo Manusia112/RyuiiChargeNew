@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import {
   BarChart3, DollarSign, ShoppingCart, TrendingUp, Settings,
   LogOut, Gem, Package, Upload, Save, Loader2, ImageIcon,
-  ToggleLeft, ToggleRight, Plus, X, Trash2, FolderOpen,
+  ToggleLeft, ToggleRight, Plus, X, Trash2, FolderOpen, RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase, supabaseConfigured } from "@/lib/supabase";
 import { games } from "@/data/games";
 import { toast } from "sonner";
-import { API, edgeHeaders } from "@/lib/api";
+import { API, edgeHeaders, authedEdgeHeaders } from "@/lib/api";
 
 const formatPrice = (n: number) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(n);
@@ -49,6 +49,24 @@ interface CategoryItem {
   platform: string | null;
   input_template: string | null;
   deleting?: boolean;
+}
+
+interface CategorySync {
+  id: string;
+  name: string;
+  slug: string;
+  digiflazz_category: string;
+  markup_percent: number;
+  platform: string | null;
+  saving?: boolean;
+}
+
+interface SyncResult {
+  created: number;
+  updated: number;
+  unchanged: number;
+  errors?: string[];
+  total: number;
 }
 
 interface NewProductForm {
@@ -151,7 +169,7 @@ const CATEGORY_OPTIONS = [
   { value: "ppob", label: "PPOB" },
 ];
 
-type Tab = "dashboard" | "transactions" | "products" | "markup";
+type Tab = "dashboard" | "transactions" | "products" | "markup" | "sync";
 
 const dbBySlug = (product: ProductItem) => ({ slug: product.slug });
 
@@ -178,6 +196,10 @@ const Admin = () => {
     name: string;
   } | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [syncCats, setSyncCats] = useState<CategorySync[]>([]);
+  const [loadingSyncCats, setLoadingSyncCats] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
 
   const generateUniqueSlug = async (table: string, baseSlug: string): Promise<string> => {
     if (!supabase) return baseSlug;
@@ -269,6 +291,9 @@ const Admin = () => {
     }
     if (activeTab === "transactions") {
       void fetchTransactions();
+    }
+    if (activeTab === "sync") {
+      fetchSyncCategories();
     }
   }, [activeTab]);
 
@@ -526,6 +551,83 @@ const Admin = () => {
     }
   };
 
+  const fetchSyncCategories = () => {
+    if (!supabaseConfigured || !supabase) return;
+    setLoadingSyncCats(true);
+    setSyncResult(null);
+    supabase
+      .from("categories")
+      .select("id, name, slug, digiflazz_category, markup_percent, platform")
+      .order("name", { ascending: true })
+      .then(({ data, error }) => {
+        setLoadingSyncCats(false);
+        if (error) {
+          console.error("Gagal memuat kategori:", error);
+          toast.error("Gagal memuat kategori");
+          return;
+        }
+        if (data) {
+          setSyncCats(
+            data.map((c: any) => ({
+              id: c.id,
+              name: c.name,
+              slug: c.slug,
+              digiflazz_category: c.digiflazz_category ?? "",
+              markup_percent: c.markup_percent ?? 20,
+              platform: c.platform,
+            }))
+          );
+        }
+      });
+  };
+
+  const handleSyncCatChange = (id: string, patch: Partial<CategorySync>) => {
+    setSyncCats((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+  };
+
+  const handleSaveSyncCat = async (cat: CategorySync) => {
+    if (!supabaseConfigured || !supabase) {
+      toast.error("Koneksi Supabase tidak tersedia");
+      return;
+    }
+    const { error } = await supabase
+      .from("categories")
+      .update({
+        digiflazz_category: cat.digiflazz_category || null,
+        markup_percent: cat.markup_percent,
+      })
+      .eq("id", cat.id);
+    if (error) {
+      toast.error(`Gagal menyimpan: ${error.message}`);
+    } else {
+      toast.success(`Mapping "${cat.name}" berhasil disimpan`);
+    }
+  };
+
+  const handleSyncProducts = async () => {
+    if (!supabaseConfigured || !supabase) return;
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const headers = await authedEdgeHeaders();
+      const res = await fetch(API.syncProducts, {
+        method: "POST",
+        headers,
+      });
+      const data = await res.json() as SyncResult & { error?: string };
+      if (!res.ok || data.error) {
+        toast.error(data.error ?? "Sync gagal");
+        return;
+      }
+      setSyncResult(data);
+      toast.success(`Sync selesai: ${data.created} baru, ${data.updated} update`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Sync gagal");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const handleSignOut = async () => {
     await signOut();
     navigate("/");
@@ -536,6 +638,7 @@ const Admin = () => {
     { id: "transactions", label: "Transaksi", icon: ShoppingCart },
     { id: "products", label: "Produk", icon: Package },
     { id: "markup", label: "Markup Global", icon: Settings },
+    { id: "sync", label: "Sinkronisasi", icon: RefreshCw },
   ];
 
   const gameCategoryOptions = categories.length > 0
@@ -972,10 +1075,119 @@ const Admin = () => {
                                   className="pl-8 bg-muted/50 border-border/50"
                                   data-testid={`input-fixed-price-${product.slug}`}
                                 />
-                              </div>
-                            </div>
-                          )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === "sync" && (
+          <div className="space-y-6">
+            <h1 className="font-display text-2xl font-bold">Sinkronisasi Produk</h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              Atur mapping kategori Digiflazz dan markup harga per game, lalu sinkronisasi produk otomatis.
+            </p>
+
+            <div className="game-card p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-display font-semibold text-lg">Mapping Kategori Digiflazz</h2>
+                <Button
+                  onClick={handleSyncProducts}
+                  disabled={syncing}
+                  className="gap-2 bg-primary text-primary-foreground"
+                >
+                  {syncing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                  {syncing ? "Menyinkronkan..." : "Sync Produk dari Digiflazz"}
+                </Button>
+              </div>
+
+              {syncResult && (
+                <div className="game-card p-4 mb-4 border border-primary/30 bg-primary/5 text-sm space-y-1">
+                  <p className="text-primary font-semibold">Sinkronisasi selesai!</p>
+                  <p>Total produk: <strong>{syncResult.total}</strong></p>
+                  <p className="text-emerald-400">Baru: <strong>{syncResult.created}</strong></p>
+                  <p className="text-amber-400">Update: <strong>{syncResult.updated}</strong></p>
+                  <p className="text-muted-foreground">Tidak berubah: <strong>{syncResult.unchanged}</strong></p>
+                  {syncResult.errors && syncResult.errors.length > 0 && (
+                    <div className="mt-2">
+                      <p className="text-red-400">Error ({syncResult.errors.length}):</p>
+                      <ul className="list-disc pl-5 text-xs text-red-300">
+                        {syncResult.errors.map((e, i) => <li key={i}>{e}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {loadingSyncCats ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              ) : syncCats.length === 0 ? (
+                <p className="text-muted-foreground text-sm py-4">
+                  Belum ada kategori. Buat kategori game terlebih dahulu di tab "Produk".
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {syncCats.map((cat) => (
+                    <div key={cat.id} className="game-card p-4 flex flex-col md:flex-row gap-4 items-start md:items-center">
+                      <div className="flex-1 min-w-0 w-full">
+                        <p className="font-semibold text-sm">{cat.name}</p>
+                        <p className="text-xs text-muted-foreground font-mono">{cat.slug}</p>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                        <div>
+                          <Label className="text-xs text-muted-foreground mb-1 block">
+                            Nama Kategori Digiflazz
+                          </Label>
+                          <Input
+                            value={cat.digiflazz_category}
+                            onChange={(e) => handleSyncCatChange(cat.id, { digiflazz_category: e.target.value })}
+                            className="bg-muted/50 border-border/50 min-w-[180px]"
+                            placeholder="contoh: MOBILE LEGENDS"
+                          />
                         </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground mb-1 block">Markup (%)</Label>
+                          <div className="relative">
+                            <Input
+                              type="number"
+                              min="0"
+                              max="999"
+                              value={cat.markup_percent}
+                              onChange={(e) => handleSyncCatChange(cat.id, { markup_percent: Number(e.target.value) })}
+                              className="pr-8 bg-muted/50 border-border/50 w-24"
+                            />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleSaveSyncCat(cat)}
+                        className="gap-2 border-border/50 shrink-0"
+                      >
+                        <Save className="h-3.5 w-3.5" />
+                        Simpan
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <p className="text-xs text-muted-foreground mt-4">
+                Pastikan nama kategori Digiflazz ditulis persis seperti yang ada di Digiflazz (contoh: "MOBILE LEGENDS", "FREE FIRE", "Genshin Impact").
+                Setelah mapping disimpan, klik "Sync Produk dari Digiflazz" untuk menarik daftar produk.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
                       </div>
 
                       <div className="flex md:flex-col justify-end items-end gap-2 shrink-0">

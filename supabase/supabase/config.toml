@@ -67,6 +67,9 @@ verify_jwt = true
 [functions.manage-transaction]
 verify_jwt = true
 
+[functions.sync-products]
+verify_jwt = true
+
 [analytics]
 enabled = false
 port = 54327
