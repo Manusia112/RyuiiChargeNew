@@ -62,10 +62,12 @@ interface CategorySync {
 }
 
 interface SyncResult {
+  success: boolean;
   created: number;
   updated: number;
   unchanged: number;
   errors?: string[];
+  error?: string;
   total: number;
 }
 
@@ -609,19 +611,17 @@ const Admin = () => {
     setSyncing(true);
     setSyncResult(null);
     try {
-      const headers = await authedEdgeHeaders();
-      const res = await fetch(API.manageTransaction, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ action: "sync_products" }),
-      });
-      const json = await res.json() as Record<string, unknown>;
-      if (!res.ok || json.error) {
-        toast.error((json.error ?? json.message ?? "Sync gagal") as string);
+      const { data, error } = await supabase.rpc("sync_products_from_digiflazz");
+      if (error) {
+        toast.error(error.message);
         return;
       }
-      setSyncResult(json as unknown as SyncResult);
-      toast.success(`Sync selesai: ${data.created} baru, ${data.updated} update`);
+      setSyncResult(data as unknown as SyncResult);
+      if (data.success) {
+        toast.success(`Sync selesai: ${data.created} baru, ${data.updated} update`);
+      } else {
+        toast.error(data.error ?? "Sync gagal");
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Sync gagal");
     } finally {
