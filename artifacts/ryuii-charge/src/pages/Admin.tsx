@@ -1079,6 +1079,43 @@ const Admin = () => {
           </div>
         )}
 
+      </div>
+                      </div>
+
+                      <div className="flex md:flex-col justify-end items-end gap-2 shrink-0">
+                        <Button
+                          size="sm"
+                          onClick={() => handleSaveProduct(product)}
+                          disabled={product.saving}
+                          className="gap-2 bg-primary text-primary-foreground"
+                          data-testid={`button-save-product-${product.slug}`}
+                        >
+                          {product.saving ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Save className="h-3.5 w-3.5" />
+                          )}
+                          Simpan
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDeleteProduct(product)}
+                          className="gap-2 border-red-500/50 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                          data-testid={`button-delete-product-${product.slug}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Hapus
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {activeTab === "sync" && (
           <div className="space-y-6">
             <h1 className="font-display text-2xl font-bold">Sinkronisasi Produk</h1>
@@ -1185,42 +1222,6 @@ const Admin = () => {
                 Setelah mapping disimpan, klik "Sync Produk dari Digiflazz" untuk menarik daftar produk.
               </p>
             </div>
-          </div>
-        )}
-      </div>
-                      </div>
-
-                      <div className="flex md:flex-col justify-end items-end gap-2 shrink-0">
-                        <Button
-                          size="sm"
-                          onClick={() => handleSaveProduct(product)}
-                          disabled={product.saving}
-                          className="gap-2 bg-primary text-primary-foreground"
-                          data-testid={`button-save-product-${product.slug}`}
-                        >
-                          {product.saving ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Save className="h-3.5 w-3.5" />
-                          )}
-                          Simpan
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDeleteProduct(product)}
-                          className="gap-2 border-red-500/50 text-red-400 hover:bg-red-500/10 hover:text-red-300"
-                          data-testid={`button-delete-product-${product.slug}`}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          Hapus
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         )}
 
