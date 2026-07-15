@@ -39,14 +39,6 @@ const CheckNickname = ({ game, playerId, setPlayerId, serverId, setServerId }: P
     setChecking(true);
     resetAll();
 
-    // Skip for Free Fire and similar non-validating games
-    const slug = game.slug.toLowerCase().replace(/[^a-z0-9]/g, "");
-    if (slug.includes("freefire") || slug === "ff" || slug.startsWith("ff")) {
-      setNoValidation(true);
-      setChecking(false);
-      return;
-    }
-
     try {
       const response = await fetch(API.checkNickname, {
         method: "POST",
@@ -69,7 +61,7 @@ const CheckNickname = ({ game, playerId, setPlayerId, serverId, setServerId }: P
       if (result.success && result.name === NO_VALIDATION_NAME) {
         setNoValidation(true);
       } else if (result.success && result.name && isFakeName(result.name)) {
-        setNoValidation(true);
+        setNotFound(true);
       } else if (result.success && result.name) {
         setNickname(result.name);
       } else {
