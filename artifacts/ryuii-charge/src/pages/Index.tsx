@@ -141,26 +141,27 @@ const Index = () => {
                     data-testid={`card-game-${cat.slug}`}
                   >
                     <div className="aspect-[4/3] overflow-hidden rounded-t-[calc(var(--radius)-1px)]">
-                      {cat.image_url ? (
-                        <img
-                          src={`${cat.image_url}&w=400&h=300&fit=crop`}
-                          srcSet={`${cat.image_url}&w=200&h=150&fit=crop 200w, ${cat.image_url}&w=400&h=300&fit=crop 400w, ${cat.image_url}&w=800&h=600&fit=crop 800w`}
-                          sizes="(max-width: 640px) 200px, (max-width: 1024px) 400px, 300px"
-                          alt={cat.name}
-                          loading={i < 4 ? "eager" : "lazy"}
-                          fetchpriority={i < 2 ? "high" : "low"}
-                          width="400"
-                          height="300"
-                          decoding="async"
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-muted/30 flex items-center justify-center">
-                          <span className="text-3xl font-bold text-muted-foreground/20">
-                            {cat.name.charAt(0)}
-                          </span>
-                        </div>
-                      )}
+                      <img
+                        src={cat.image_url || ""}
+                        alt={cat.name}
+                        loading={i < 4 ? "eager" : "lazy"}
+                        fetchpriority={i < 2 ? "high" : "low"}
+                        width="400"
+                        height="300"
+                        decoding="async"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        onError={(e) => {
+                          const el = e.target as HTMLImageElement;
+                          el.style.display = "none";
+                          const fb = el.parentElement?.querySelector(".img-fallback");
+                          if (fb) fb.classList.remove("hidden");
+                        }}
+                      />
+                      <div className="w-full h-full bg-muted/30 flex items-center justify-center img-fallback hidden">
+                        <span className="text-3xl font-bold text-muted-foreground/20">
+                          {cat.name.charAt(0)}
+                        </span>
+                      </div>
                     </div>
                     <div className="p-4">
                       <div className="flex items-start justify-between gap-2">

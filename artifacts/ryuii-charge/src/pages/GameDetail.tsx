@@ -444,11 +444,18 @@ const GameDetail = () => {
       <Navbar />
 
       <div id="main-content" className="relative h-40 md:h-56 overflow-hidden">
-        {gameBanner ? (
-          <img src={gameBanner} alt={gameName} loading="lazy" width="800" height="300" className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full bg-muted/30" />
-        )}
+        <img
+          src={gameBanner || ""}
+          alt={gameName}
+          loading="lazy"
+          width="800"
+          height="300"
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            (e.target as HTMLImageElement).style.display = "none";
+          }}
+        />
+        <div className="w-full h-full bg-muted/30" />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
       </div>
 
