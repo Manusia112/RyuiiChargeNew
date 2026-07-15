@@ -14,6 +14,11 @@ interface Props {
 }
 
 const NO_VALIDATION_NAME = "Tanpa Validasi (Lanjutkan)";
+const FAKE_NAMES = ["garena free fire", "garena"];
+
+function isFakeName(name: string): boolean {
+  return FAKE_NAMES.some((n) => name.toLowerCase().includes(n));
+}
 
 const CheckNickname = ({ game, playerId, setPlayerId, serverId, setServerId }: Props) => {
   const [checking, setChecking] = useState(false);
@@ -33,6 +38,14 @@ const CheckNickname = ({ game, playerId, setPlayerId, serverId, setServerId }: P
     if (!playerId.trim()) return;
     setChecking(true);
     resetAll();
+
+    // Skip for Free Fire and similar non-validating games
+    const slug = game.slug.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (slug.includes("freefire") || slug === "ff" || slug.startsWith("ff")) {
+      setNoValidation(true);
+      setChecking(false);
+      return;
+    }
 
     try {
       const response = await fetch(API.checkNickname, {
@@ -54,6 +67,8 @@ const CheckNickname = ({ game, playerId, setPlayerId, serverId, setServerId }: P
       const result = await response.json() as { success?: boolean; name?: string; error?: string };
 
       if (result.success && result.name === NO_VALIDATION_NAME) {
+        setNoValidation(true);
+      } else if (result.success && result.name && isFakeName(result.name)) {
         setNoValidation(true);
       } else if (result.success && result.name) {
         setNickname(result.name);

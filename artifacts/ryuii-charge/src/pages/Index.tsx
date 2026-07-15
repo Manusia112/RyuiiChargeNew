@@ -149,7 +149,7 @@ const Index = () => {
                         width="400"
                         height="300"
                         decoding="async"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        className="w-full h-full object-contain bg-muted/30 group-hover:scale-105 transition-transform duration-500"
                         onError={(e) => {
                           const el = e.target as HTMLImageElement;
                           el.style.display = "none";

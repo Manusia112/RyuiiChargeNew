@@ -53,11 +53,22 @@ function deriveInputTemplate(slug: string): InputTemplate {
   return "SINGLE_ID";
 }
 
+const NO_VALIDATION_GAMES = ["free-fire", "free-fire-max", "ff", "call-of-duty", "codm", "pubg", "clash-of-clans", "coc", "clash-royale", "cr", "brawl-stars", "bs", "honor-of-kings", "hok"];
+
+function isNoValidationGame(slug: string): boolean {
+  const s = slug.toLowerCase().replace(/[^a-z0-9]/g, "");
+  return NO_VALIDATION_GAMES.some((g) => s.includes(g.replace(/[^a-z0-9]/g, "")));
+}
+
 const GameDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const [, navigate] = useLocation();
 
   const mockGame = getGameBySlug(slug || "");
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [slug]);
 
   const [loadingHeader, setLoadingHeader] = useState(false);
   const [categoryInfo, setCategoryInfo] = useState<CategoryInfo | null>(null);
@@ -175,6 +186,13 @@ const GameDetail = () => {
     setVerifiedNickname(null);
     setNicknameError(null);
 
+    // Skip API call for games that don't have real validation (Free Fire, PUBG, COC, etc.)
+    if (slug && isNoValidationGame(slug)) {
+      setVerifiedNickname("Tanpa Validasi (Lanjutkan)");
+      setCheckingNickname(false);
+      return;
+    }
+
     const idToSend   = getIdForValidation();
     const zoneToSend = getZoneForValidation();
 
@@ -198,10 +216,16 @@ const GameDetail = () => {
 
       const json = await res.json() as { success?: boolean; name?: string; error?: string };
 
-      if (json.success && json.name === "Tanpa Validasi (Lanjutkan)") {
-        setVerifiedNickname("Tanpa Validasi (Lanjutkan)");
-      } else if (json.success && json.name) {
-        setVerifiedNickname(json.name);
+      // Detect known fake responses from non-validating games (e.g. Free Fire always returns "Garena Free Fire")
+      if (json.success && json.name) {
+        const fakeNames = ["garena free fire", "garena"];
+        if (fakeNames.some((n) => json.name!.toLowerCase().includes(n))) {
+          setVerifiedNickname("Tanpa Validasi (Lanjutkan)");
+        } else if (json.name === "Tanpa Validasi (Lanjutkan)") {
+          setVerifiedNickname("Tanpa Validasi (Lanjutkan)");
+        } else {
+          setVerifiedNickname(json.name);
+        }
       } else {
         setNicknameError(json.error ?? "ID tidak ditemukan. Periksa kembali.");
       }
@@ -450,7 +474,7 @@ const GameDetail = () => {
           loading="lazy"
           width="800"
           height="300"
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain bg-muted/30"
           onError={(e) => {
             (e.target as HTMLImageElement).style.display = "none";
           }}
@@ -524,7 +548,14 @@ const GameDetail = () => {
                   </Button>
                 </div>
 
-                {verifiedNickname && (
+                {verifiedNickname === "Tanpa Validasi (Lanjutkan)" && (
+                  <div className="flex items-center gap-2 text-sm" data-testid="text-no-validation">
+                    <Info className="h-4 w-4 shrink-0 text-amber-400" />
+                    <span className="text-muted-foreground">Game ini tidak memerlukan validasi nickname. Lanjutkan pembelian.</span>
+                  </div>
+                )}
+
+                {verifiedNickname && verifiedNickname !== "Tanpa Validasi (Lanjutkan)" && (
                   <div className="flex items-center gap-2 text-sm" data-testid="text-nickname-found">
                     <CheckCircle className="h-4 w-4 shrink-0 text-success" />
                     <span className="text-muted-foreground">Nickname:</span>
@@ -566,7 +597,7 @@ const GameDetail = () => {
                 {!selectedDenom && (
                   <p className="text-muted-foreground text-xs">Pilih nominal terlebih dahulu</p>
                 )}
-                {verifiedNickname && (
+                {verifiedNickname && verifiedNickname !== "Tanpa Validasi (Lanjutkan)" && (
                   <div className="flex justify-between border-t border-border/30 pt-2">
                     <span className="text-muted-foreground">Akun</span>
                     <span className="font-semibold text-xs text-right text-success">

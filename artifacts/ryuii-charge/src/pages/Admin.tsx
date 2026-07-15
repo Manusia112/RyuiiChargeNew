@@ -863,7 +863,7 @@ const Admin = () => {
                     <div key={cat.id} className="game-card p-3 relative group">
                       <div className="aspect-square rounded-lg overflow-hidden bg-muted/40 mb-2">
                         {cat.image_url ? (
-                          <img src={cat.image_url} alt={cat.name} loading="lazy" width="200" height="200" className="w-full h-full object-cover" />
+                          <img src={cat.image_url} alt={cat.name} loading="lazy" width="200" height="200" className="w-full h-full object-contain bg-muted/30" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
                             <ImageIcon className="h-6 w-6 text-muted-foreground/40" />
@@ -902,17 +902,17 @@ const Admin = () => {
                       <div className="flex items-start gap-4">
                         <div className="relative group shrink-0">
                           <div className="w-20 h-20 rounded-xl overflow-hidden bg-muted/50 border border-border/50">
-                            {product.image_url ? (
-                              <img
-                                src={product.image_url}
-                                alt={product.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
-                              </div>
-                            )}
+                              {product.image_url ? (
+                                <img
+                                  src={product.image_url}
+                                  alt={product.name}
+                                  className="w-full h-full object-contain bg-muted/30"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
+                                </div>
+                              )}
                             {product.uploading && (
                               <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-xl">
                                 <Loader2 className="h-5 w-5 animate-spin text-white" />
