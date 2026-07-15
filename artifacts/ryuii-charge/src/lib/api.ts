@@ -1,16 +1,14 @@
 import { supabase } from "./supabase";
 
-const SUPA_URL = (import.meta.env.VITE_SUPABASE_URL as string | undefined) || "https://mbrvtkdmwnemvthzrvac.supabase.co";
-const SUPA = `${SUPA_URL}/functions/v1`;
-const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+const SUPA_URL = (import.meta as Record<string, any>).env?.VITE_SUPABASE_URL as string | undefined || "https://mbrvtkdmwnemvthzrvac.supabase.co";
+const ANON_KEY = (import.meta as Record<string, any>).env?.VITE_SUPABASE_ANON_KEY as string | undefined;
 
 export const API = {
-  checkNickname:     `${SUPA}/check-nickname`,
-  checkout:          `${SUPA}/create-order`,
-  repay:             `${SUPA}/repay`,
-  adminTransactions: `${SUPA}/admin-transactions`,
-  manageTransaction: `${SUPA}/manage-transaction`,
-  syncProducts:       `${SUPA}/sync-products`,
+  checkNickname:     `${SUPA_URL}/functions/v1/check-nickname`,
+  checkout:          `${SUPA_URL}/functions/v1/create-order`,
+  repay:             `${SUPA_URL}/functions/v1/repay`,
+  adminTransactions: `${SUPA_URL}/functions/v1/admin-transactions`,
+  manageTransaction: `${SUPA_URL}/functions/v1/manage-transaction`,
 };
 
 /** Headers wajib untuk semua request ke Supabase Edge Functions */
