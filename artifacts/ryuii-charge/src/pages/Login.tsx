@@ -4,8 +4,9 @@ import { Gem, Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, RefreshCw } from "l
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { Turnstile } from "@marsidev/react-turnstile";
+import { supabase, supabaseConfigured } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
-import { supabaseConfigured } from "@/lib/supabase";
 import { validateEmail } from "@/lib/emailValidation";
 
 const GoogleIcon = () => (
@@ -25,6 +26,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [resending, setResending] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string>("");
   const [notVerified, setNotVerified] = useState(false);
   const [, navigate] = useLocation();
   const { signIn, signInWithGoogle, resendVerification } = useAuth();
@@ -49,6 +51,19 @@ const Login = () => {
     }
 
     if (!password) return;
+
+    if (supabase != null && !turnstileToken) {
+      toast.error("Selesaikan verifikasi CAPTCHA terlebih dahulu");
+      return;
+    }
+
+    if (supabase != null && turnstileToken) {
+      const { error: verifyError } = await supabase.rpc("verify_turnstile", { token: turnstileToken });
+      if (verifyError) {
+        toast.error("Verifikasi keamanan gagal, silakan coba lagi");
+        return;
+      }
+    }
 
     setLoading(true);
     setNotVerified(false);
@@ -201,9 +216,17 @@ const Login = () => {
             </div>
           </div>
 
+          {supabase != null && (
+            <Turnstile
+              siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || ""}
+              onSuccess={(token) => setTurnstileToken(token)}
+              options={{ theme: "dark" }}
+            />
+          )}
+
           <Button
             onClick={handleLogin}
-            disabled={!email || !password || !!emailError || loading}
+            disabled={!email || !password || !!emailError || loading || (supabase != null && !turnstileToken)}
             className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
             data-testid="button-submit-login"
           >

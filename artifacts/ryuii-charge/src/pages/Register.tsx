@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import { supabaseConfigured } from "@/lib/supabase";
+import { supabase, supabaseConfigured } from "@/lib/supabase";
 import { validateEmail } from "@/lib/emailValidation";
 
 const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
@@ -33,7 +33,7 @@ const Register = () => {
   const [turnstileFailed, setTurnstileFailed] = useState(false);
   const [, navigate] = useLocation();
   const { signUp, signInWithGoogle } = useAuth();
-  const turnstileRef = useRef<{ reset: () => void } | null>(null);
+  const turnstileRef = useRef<any>(null);
 
   const handleEmailChange = (val: string) => {
     setEmail(val);
@@ -63,30 +63,18 @@ const Register = () => {
       return;
     }
 
-    if (TURNSTILE_SITE_KEY && !turnstileFailed) {
+    if (TURNSTILE_SITE_KEY && supabase != null) {
       if (!turnstileToken) {
         toast.error("Selesaikan verifikasi CAPTCHA terlebih dahulu");
         return;
       }
 
-      try {
-        const apiUrl = API_BASE
-          ? `${window.location.origin}${API_BASE}/api/verify-turnstile`
-          : "/api/verify-turnstile";
-
-        const res = await fetch(apiUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token: turnstileToken }),
-        });
-        const data = await res.json() as { success: boolean; error?: string };
-        if (!data.success) {
-          toast.error(data.error ?? "Verifikasi CAPTCHA gagal. Coba lagi.");
-          turnstileRef.current?.reset();
-          setTurnstileToken(null);
-          return;
-        }
-      } catch {
+      const { error: verifyError } = await supabase.rpc("verify_turnstile", { token: turnstileToken });
+      if (verifyError) {
+        toast.error("Verifikasi keamanan gagal, silakan coba lagi");
+        turnstileRef.current?.reset();
+        setTurnstileToken(null);
+        return;
       }
     }
 
@@ -112,7 +100,7 @@ const Register = () => {
     setGoogleLoading(false);
   };
 
-  const canSubmit = !!(name && email && password && !emailError && (!TURNSTILE_SITE_KEY || turnstileFailed || turnstileToken));
+  const canSubmit = !!(name && email && password && !emailError && (!TURNSTILE_SITE_KEY || turnstileToken));
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -215,7 +203,7 @@ const Register = () => {
             </div>
           </div>
 
-          {TURNSTILE_SITE_KEY && !turnstileFailed && (
+          {TURNSTILE_SITE_KEY && (
             <div className="flex justify-center">
               <Turnstile
                 ref={turnstileRef}
@@ -223,8 +211,7 @@ const Register = () => {
                 onSuccess={(token) => setTurnstileToken(token)}
                 onExpire={() => setTurnstileToken(null)}
                 onError={() => {
-                  setTurnstileToken(null);
-                  setTurnstileFailed(true);
+                  console.error("Turnstile error");
                 }}
                 options={{
                   theme: "dark",

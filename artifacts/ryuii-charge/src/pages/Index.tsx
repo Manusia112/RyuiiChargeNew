@@ -145,7 +145,7 @@ const Index = () => {
                         src={cat.image_url || ""}
                         alt={cat.name}
                         loading={i < 4 ? "eager" : "lazy"}
-                        fetchpriority={i < 2 ? "high" : "low"}
+                        fetchPriority={i < 2 ? "high" : "low"}
                         width="400"
                         height="300"
                         decoding="async"

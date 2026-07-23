@@ -8,6 +8,7 @@ import Footer from "@/components/Footer";
 import { getGameBySlug } from "@/data/games";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { Turnstile } from "@marsidev/react-turnstile";
 import { supabase, supabaseConfigured } from "@/lib/supabase";
 import { API, edgeHeaders } from "@/lib/api";
 
@@ -64,6 +65,7 @@ const Checkout = () => {
   const { user } = useAuth();
 
   const [creating, setCreating] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string>("");
 
   const missingFields: string[] = [];
   if (!gameSlug)       missingFields.push("game");
@@ -95,6 +97,21 @@ const Checkout = () => {
   }
 
   const handleCreateInvoice = async () => {
+    if (supabase != null && !turnstileToken) {
+      toast.error("Selesaikan verifikasi CAPTCHA terlebih dahulu");
+      setCreating(false);
+      return;
+    }
+
+    if (supabase != null && turnstileToken) {
+      const { error: verifyError } = await supabase.rpc("verify_turnstile", { token: turnstileToken });
+      if (verifyError) {
+        toast.error("Verifikasi keamanan gagal, silakan coba lagi");
+        setCreating(false);
+        return;
+      }
+    }
+
     setCreating(true);
 
     let resolvedUserId: string | undefined;
@@ -245,9 +262,17 @@ const Checkout = () => {
             </div>
           </div>
 
+          {supabase != null && (
+            <Turnstile
+              siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || ""}
+              onSuccess={(token) => setTurnstileToken(token)}
+              options={{ theme: "dark" }}
+            />
+          )}
+
           <Button
             onClick={handleCreateInvoice}
-            disabled={creating}
+            disabled={creating || (supabase != null && !turnstileToken)}
             className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-12"
             data-testid="button-create-invoice"
           >
