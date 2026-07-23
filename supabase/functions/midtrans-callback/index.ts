@@ -75,7 +75,7 @@ async function triggerDigiflazzTopup(tx: {
   });
 
   try {
-    const resp = await fetch("http://103.163.160.167/digiflazz-proxy", {
+    const resp = await fetch("https://api.digiflazz.com/v1/transaction", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
